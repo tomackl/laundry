@@ -7,6 +7,9 @@ setup(
     include_package_data=True,
     install_requires=[
         'Click',
+        'Pandas',
+        'python-docx',
+        'pyjanitor',
     ],
     # TODO: complete the entry points below.
     # entry_points='''

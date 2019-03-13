@@ -8,9 +8,9 @@ def insert_table(document: object,
                  tbl_style: str = None,
                  autofit: bool = True) -> Any:
     """
-    The function takes data related to a table and uses it to create a table for the document.
+    The function takes data related to a table and uses it to create a table for the template_document.
     The first row of data is assumed to be the table header.
-    :param document: the document the table will be added to.
+    :param document: the template_document the table will be added to.
     :param rows: the number of required table rows.
     :param cols: the number of required table columns.
     :param data: The list data to be inserted into the table. The idx[0] is assumed to be the header.
@@ -45,7 +45,7 @@ def insert_paragraph(document: object,
                      title_style: str = None,
                      title_level: int = 0) -> Any:
     """
-    :param document: the document the paragraph will be added to.
+    :param document: the template_document the paragraph will be added to.
     :param text: paragraph text
     :param title: title text
     :param para_style: paragraph style
