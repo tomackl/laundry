@@ -6,8 +6,14 @@ import janitor
 data_frame = NewType('data_frame', pd.DataFrame)
 
 
-def clean_xlsx_table(file_path: str, sheet: str, head: int = 0, remove_col: List[str] = None, clean_hdrs: bool = False,
-                     drop_empty: bool = False) -> data_frame:
+def clean_xlsx_table(
+        file_path: str,
+        sheet: str,
+        head: int = 0,
+        remove_col: List[str] = None,
+        clean_hdrs: bool = False,
+        drop_empty: bool = False
+) -> data_frame:
     """
     Open and perform basic data cleaning on a single excel work sheet.
     :param file_path: path to the excel file
@@ -28,7 +34,11 @@ def clean_xlsx_table(file_path: str, sheet: str, head: int = 0, remove_col: List
     return df
 
 
-def extract_data(record: Dict, header: List[str], format_title: bool = True) -> List[Tuple]:
+def extract_data(
+        record: Dict,
+        header: List[str],
+        format_title: bool = True
+) -> List[Tuple]:
     """
     Take a dictionary and split in to a list of tuples containing the 'keys' data defined in 'header' as the first tuple and the associated values as the second.
     :param record: the dictionary containing the data.

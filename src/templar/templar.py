@@ -1,35 +1,62 @@
-import clean_data as cd
-import word_tools as wt
+import clean_data as clean
+import word_tools as word
 from docx import Document
 from docx.shared import Inches
 from pathlib import Path
 
+# ==> cli arguments <==
 # todo: the path needs to provided to click
 dir = '/Users/tom/PycharmProjects/Autotemplate/autotemplate/'
 file = 'BR17065S5411 aud 27P rev B.xlsm'
 path = dir+file
+work_sheet = 'Master List'
 
+# TODO: provide an option to provide a path to the templating template_doc.
+template_doc = Document('template.docx')
+
+# ==> data cleanup arguments <==
 # todo: provide a way of describing the columns that need to be removed from the spreadsheet
-remove_columns = ['Recommended Actions',
-                  'Comment',
-                  'Link',
-                  'Photo']
+remove_columns = [
+    'Recommended Actions',
+    'Comment',
+    'Link',
+    'Photo'
+]
 
 # todo: define a way of replacing columns names with new names.
-new_cols = [(' p&s ID',
-             'Hazard_ID'
-             )]
-xlsx_file = cd.clean_xlsx_table(path,
-                                sheet='Master List',
-                                head=5,
-                                remove_col=remove_columns,
-                                clean_hdrs=True,
-                                drop_empty=True
-                                )
+#       the list below isn't actually implemented within the script.
+new_cols = [(
+    ' p&s ID',
+    'Hazard_ID'
+)]
+
+# todo: the following information needs to be provided ... somewhere/somehow
+#       - path
+#       - worksheet
+#       - first row of data (head)
+#       - which columns are to be removed
+#       - are headers to be cleaned?
+#       - are empty columns to be dropped.
+#       This information should be separated from the general formatting requirements.
+
+xlsx_file = clean.clean_xlsx_table(
+                path,
+                sheet=work_sheet,
+                head=5,
+                remove_col=remove_columns,
+                clean_hdrs=True,
+                drop_empty=True
+                )
 
 df_dict = xlsx_file.to_dict('records')
 
-# todo: define a way of scheduling the output template_document.
+# ==> Formatting specifications <==
+# todo: define a way of scheduling the output template_doc. the following needs to be considered.
+#       - how to identify headings
+#       - how to identify 'runs' of paragraphs/tables
+#       - how to assign styles to paragraphs/tables
+#       - do we require a page break at the end of each loop?
+
 heading = ['hazard_id']
 tbl_1 = ['asset_name',
          'component',
@@ -44,65 +71,57 @@ para_1 = 'comment_input'
 para_2 = 'recommended_actions_input'
 para = [para_1, para_2]
 
-template_document = Document('template.docx')
-# TODO: provide an option to provide a path to the templating template_document.
-
+# ==> data manipulation & out document assembly <==
 for record in df_dict:
     for each in heading:
-        wt.insert_paragraph(
-            template_document,
-            cd.remove_underscore(str(record[each])),
-            cd.remove_underscore(str(each).title()),
+        word.insert_paragraph(
+            template_doc,
+            clean.remove_underscore(str(record[each])),
+            clean.remove_underscore(str(each).title()),
             para_style='Normal',
             title_style='PS Heading 3'
         )
-    wt.insert_paragraph(
-        template_document,
-        ''
-    )
+    word.insert_paragraph(template_doc, '')
 
-    tbl_1_data = cd.extract_data(record, tbl_1)
-    wt.insert_table(
-        template_document,
+    tbl_1_data = clean.extract_data(record, tbl_1)
+    word.insert_table(
+        template_doc,
         len(tbl_1),
         len(tbl_1_data),
         tbl_1_data,
         tbl_style='Plain Table 4'
     )
 
-    wt.insert_paragraph(
-        template_document,
-        ''
-    )
-    tbl_2_data = cd.extract_data(record, tbl_2)
-    wt.insert_table(
-        template_document,
+    word.insert_paragraph(template_doc,'')
+
+    tbl_2_data = clean.extract_data(record, tbl_2)
+    word.insert_table(
+        template_doc,
         len(tbl_2),
         len(tbl_2_data),
         tbl_2_data,
         tbl_style='Plain Table 4'
     )
-    wt.insert_paragraph(
-        template_document,
-        ''
-    )
+    word.insert_paragraph(template_doc, '')
+
     for each in para:
-        wt.insert_paragraph(
-            template_document,
-            cd.remove_underscore(str(record[each])),
-            cd.remove_underscore(str(each).title()),
+        word.insert_paragraph(
+            template_doc,
+            clean.remove_underscore(str(record[each])),
+            clean.remove_underscore(str(each).title()),
             para_style='PS Bullet',
             title_style='PS Heading 4'
         )
 
+    # todo: do we assume that the photos will just do to the end of the page?
     photo_path = Path()
     if record['location'] != 'No Photo':
         photo_path = record['location']
-        template_document.add_picture(
+        template_doc.add_picture(
             str(photo_path),
             width=Inches(4)
         )
 
-    template_document.add_page_break()
+    template_doc.add_page_break()
 
-template_document.save('converted_file.docx')
+template_doc.save('converted_file.docx')
