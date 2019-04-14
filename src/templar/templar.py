@@ -37,6 +37,7 @@ def extract_data(record: Dict, header: List[str], format_title: bool = True
     """
     Take a dictionary and split in to a list of tuples containing the 'keys'
     data defined in 'header' as the first tuple and the associated values as the second.
+    The function will return a list containing two equal length tuples.
     :param record: the dictionary containing the data.
     :param header: the keys that defined the key-values to be extracted.
     :param format_title: make the header string title case.
@@ -89,8 +90,9 @@ def insert_table(document: object, cols: int, rows: int,
     :param autofit: autofit the table to the page width.
     :return:
     """
+    # todo: add error checking for 'cols' and 'row'
     table: object = document.add_table(rows=rows, cols=cols, style=section_style)
-    if autofit is not None:
+    if autofit is True:
         table.autofit = True
     data = enumerate(data, 0)
     for i, cell_contents in data:
@@ -118,13 +120,11 @@ def insert_photo(document: object, photo: str, width: int = 4):
     :param width: width of the image in Inches
     :return:
     """
-    photo_path = Path()
+    # todo: add ability to have more than one photo
     if photo.lower() != 'no photo':
-        photo_path = photo
+        photo_path = Path(photo)
         document.add_picture(str(photo_path), width=Inches(width))
 
-
-# todo: add code to fill _documentstructure_ with _documentsection_ tuples
 def format_docx(rowdict: dict, structdict: dict, outputfile: object):
     """
     The function is passed a dict (data_dict) containing the data to be formatted
@@ -140,16 +140,17 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object):
 
     # todo: add error checking here.
     for element in structdict:
-        if element['sectiontype'].lower() in ('heading', 'para', 'paragraph'):
+        if str(element['sectiontype']).lower() in ('heading', 'para', 'paragraph'):
             insert_paragraph(outputfile, str(rowdict[element['sectioncontains']]),
                              title=str(element['sectioncontains']).title(),
                              section_style=element['sectionstyle'],
                              title_style=element['titlestyle']
                              )
 
-        elif element['sectiontype'].lower() == 'table':
+        elif str(element['sectiontype']).lower() == 'table':
             sect_contains = []
             # the below assumes that the headers are divided by new lines or by commas.
+            # todo: convert this section into a function. this should be the same the photo seciton below (common function)
             if '\n' in element['sectioncontains']:
                 sect_contains = list(str(element['sectioncontains']).splitlines())
             elif ',' in element['sectioncontains']:
@@ -159,8 +160,21 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object):
                          data, section_style=element['sectionstyle']
                          )
 
-        elif element['sectiontype'].lower() == 'photo':
-            insert_photo(outputfile, rowdict['location'], 4)
+        # todo: this section should refernce the coloumn title in the spreadsheet structure work sheet.
+        # todo: find a way of inserting the path and the file extension into the structure work sheet
+        elif str(element['sectiontype']).lower() == 'photo':
+            # insert_photo(outputfile, rowdict['location'], 4)
+            if str(rowdict['photo']).lower() in ['nan']:
+                break
+            if '\n' in rowdict['photo']:
+                rowdict['photo'] = list(str(rowdict['photo']).splitlines())
+            else:
+                rowdict['photo'] = list(str(rowdict['photo']).split(','))
+            for each in rowdict['photo']:
+                loc = str(rowdict['location']) \
+                      + each \
+                      + str(rowdict['file_extension'])
+                insert_photo(outputfile, loc, 4)
 
         else:
             print('Valid section header was not found.')
@@ -208,12 +222,11 @@ template_doc = Document('../../resources/templates/template.docx')
 
 # ==> data cleanup arguments <==
 # todo: provide a way of describing the columns that need to be removed from the spreadsheet
-remove_columns = [
-    'Recommended Actions',
-    'Comment',
-    'Link',
-    'Photo'
-]
+remove_columns = []
+#     'Recommended Actions',
+#     'Comment',
+#     'Link',
+# ]Link
 
 # todo: define a way of replacing columns names with new names.
 #       the list below isn't actually implemented within the script.
@@ -234,17 +247,16 @@ new_cols = [(
 # IMPORT THE DATA FROM THE SPREADSHEET
 data_file = clean_xlsx_table(path, sheet=data_worksheet, head=5,
                              rm_column=remove_columns, clean_hdr=True,
-                             drop_empty=True
+                             drop_empty=False
                              )
 data_dict = data_file.to_dict('records')
 
 # IMPORT THE OUTPUT DOCUMENT STRUCTURE FROM THE SPREADSHEET
 structure_file = clean_xlsx_table(path, sheet=structure_worksheet, head=0,
-                                  clean_hdr=True
+                                  clean_hdr=True, drop_empty=False
                                   )
 structure_dict = structure_file.to_dict('records')
 
 for row in data_dict:
     format_docx(row, structure_dict, template_doc)
-
 template_doc.save('../../resources/output_files/converted_file.docx')
