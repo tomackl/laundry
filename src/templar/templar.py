@@ -59,6 +59,21 @@ def remove_underscore(text: str) -> str:
     return text.replace('_', ' ')
 
 
+def section_contains(sect_contains: Any) -> List[str]:
+    """
+    A function to split a string into a list. It will return a list.
+    :param sect_contains:
+    :return:
+    """
+    if '\n' in sect_contains:
+        return list(str(sect_contains).splitlines())
+    elif ',' in sect_contains:
+        return list(str(sect_contains).split(','))
+    else:
+        _ = list()
+        _.append(sect_contains)
+        return _
+
 def insert_paragraph(document: object, text: str, title: str = None,
                      section_style: str = None, title_style: str = None,
                      ):
@@ -72,8 +87,8 @@ def insert_paragraph(document: object, text: str, title: str = None,
     :return:
     """
     if (title is not None) and (title_style is not None):
-        document.add_paragraph(title, style=title_style)
-    document.add_paragraph(str(text), style=section_style)
+        document.add_paragraph(remove_underscore(title), style=title_style)
+    document.add_paragraph(str(remove_underscore(text)), style=section_style)
 
 
 def insert_table(document: object, cols: int, rows: int,
@@ -125,6 +140,7 @@ def insert_photo(document: object, photo: str, width: int = 4):
         photo_path = Path(photo)
         document.add_picture(str(photo_path), width=Inches(width))
 
+
 def format_docx(rowdict: dict, structdict: dict, outputfile: object):
     """
     The function is passed a dict (data_dict) containing the data to be formatted
@@ -134,10 +150,6 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object):
     :param outputfile: The file which data will be inserted into.
     :return:
     """
-    # todo: some though needs to be given to how to format the output titles.
-    #       consideration to the use of .strip() has been given however this might cause
-    #       problems for users.
-
     # todo: add error checking here.
     for element in structdict:
         if str(element['sectiontype']).lower() in ('heading', 'para', 'paragraph'):
@@ -148,29 +160,20 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object):
                              )
 
         elif str(element['sectiontype']).lower() == 'table':
-            sect_contains = []
-            # the below assumes that the headers are divided by new lines or by commas.
-            # todo: convert this section into a function. this should be the same the photo seciton below (common function)
-            if '\n' in element['sectioncontains']:
-                sect_contains = list(str(element['sectioncontains']).splitlines())
-            elif ',' in element['sectioncontains']:
-                sect_contains = list(str(element['sectioncontains']).split(','))
-            data = extract_data(rowdict, sect_contains)
-            insert_table(outputfile, len(sect_contains), len(data),
+            sect_contains = element['sectioncontains']
+            table = section_contains(sect_contains)
+            data = extract_data(rowdict, table)
+            insert_table(outputfile, len(table), len(data),
                          data, section_style=element['sectionstyle']
                          )
 
-        # todo: this section should refernce the coloumn title in the spreadsheet structure work sheet.
         # todo: find a way of inserting the path and the file extension into the structure work sheet
         elif str(element['sectiontype']).lower() == 'photo':
-            # insert_photo(outputfile, rowdict['location'], 4)
-            if str(rowdict['photo']).lower() in ['nan']:
+            sect_contains = rowdict[element['sectioncontains']]
+            if str(sect_contains).lower() in ['nan']:
                 break
-            if '\n' in rowdict['photo']:
-                rowdict['photo'] = list(str(rowdict['photo']).splitlines())
-            else:
-                rowdict['photo'] = list(str(rowdict['photo']).split(','))
-            for each in rowdict['photo']:
+            photo = section_contains(sect_contains)
+            for each in photo:
                 loc = str(rowdict['location']) \
                       + each \
                       + str(rowdict['file_extension'])
