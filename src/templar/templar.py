@@ -86,9 +86,14 @@ def insert_paragraph(document: object, text: str, title: str = None,
     :param title_style: title style. Use this _or_ title_level.
     :return:
     """
+    if text == '':
+        document.add_paragraph(text)
+        return
+    text = text.splitlines()
     if (title is not None) and (title_style is not None):
         document.add_paragraph(remove_underscore(title), style=title_style)
-    document.add_paragraph(str(remove_underscore(text)), style=section_style)
+    for each in text:
+        document.add_paragraph(each, style=section_style)
 
 
 def insert_table(document: object, cols: int, rows: int,
@@ -135,10 +140,9 @@ def insert_photo(document: object, photo: str, width: int = 4):
     :param width: width of the image in Inches
     :return:
     """
-    # todo: add ability to have more than one photo
-    if photo.lower() != 'no photo':
-        photo_path = Path(photo)
-        document.add_picture(str(photo_path), width=Inches(width))
+    # todo: add an exception here to handle bad filenames and paths
+    photo_path = Path(photo)
+    document.add_picture(str(photo_path), width=Inches(width))
 
 
 def format_docx(rowdict: dict, structdict: dict, outputfile: object):
@@ -170,15 +174,11 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object):
         # todo: find a way of inserting the path and the file extension into the structure work sheet
         elif str(element['sectiontype']).lower() == 'photo':
             sect_contains = rowdict[element['sectioncontains']]
-            if str(sect_contains).lower() in ['nan']:
-                break
-            photo = section_contains(sect_contains)
-            for each in photo:
-                loc = str(rowdict['location']) \
-                      + each \
-                      + str(rowdict['file_extension'])
-                insert_photo(outputfile, loc, 4)
-
+            if str(sect_contains).lower() not in ['no photo', 'none', 'nan', '-']:
+                photo = section_contains(sect_contains)
+                for each in photo:
+                    loc = dir + str(element['path']) + '/' + each
+                    insert_photo(outputfile, loc, 4)
         else:
             print('Valid section header was not found.')
 
@@ -250,7 +250,7 @@ new_cols = [(
 # IMPORT THE DATA FROM THE SPREADSHEET
 data_file = clean_xlsx_table(path, sheet=data_worksheet, head=5,
                              rm_column=remove_columns, clean_hdr=True,
-                             drop_empty=False
+                             drop_empty=True
                              )
 data_dict = data_file.to_dict('records')
 
