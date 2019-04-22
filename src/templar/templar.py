@@ -4,6 +4,7 @@ import pandas as pd
 import janitor
 from pathlib import Path
 from typing import List, Iterable, Dict, Tuple, Any, NewType
+import click
 
 
 data_frame = NewType('data_frame', pd.DataFrame)
@@ -22,6 +23,7 @@ def clean_xlsx_table(file_path: str, sheet: str, head: int = 0,
     :param drop_empty: If True remove empty rows.
     :return:
     """
+    # todo: add exception here to catch a XLRDError in the event of a misnamed work sheet.
     df = pd.read_excel(pd.ExcelFile(file_path), sheet, head)
     if rm_column is not None:
         df = df.remove_columns(rm_column)
@@ -73,6 +75,7 @@ def section_contains(sect_contains: Any) -> List[str]:
         _ = list()
         _.append(sect_contains)
         return _
+
 
 def insert_paragraph(document: object, text: str, title: str = None,
                      section_style: str = None, title_style: str = None,
@@ -145,15 +148,17 @@ def insert_photo(document: object, photo: str, width: int = 4):
     document.add_picture(str(photo_path), width=Inches(width))
 
 
-def format_docx(rowdict: dict, structdict: dict, outputfile: object):
+def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: str):
     """
     The function is passed a dict (data_dict) containing the data to be formatted
     (structure) based on the template (outputfile).
     :param rowdict: dictionary containing the text. It represents a single row from the spreadsheet.
     :param structdict: defines the output file's format structure.
     :param outputfile: The file which data will be inserted into.
+    :param file_path: directory containing the spreadsheet
     :return:
     """
+    file_path = file_path
     # todo: add error checking here.
     for element in structdict:
         if str(element['sectiontype']).lower() in ('heading', 'para', 'paragraph'):
@@ -164,20 +169,19 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object):
                              )
 
         elif str(element['sectiontype']).lower() == 'table':
-            sect_contains = element['sectioncontains']
-            table = section_contains(sect_contains)
+            table = section_contains(element['sectioncontains'])
             data = extract_data(rowdict, table)
             insert_table(outputfile, len(table), len(data),
                          data, section_style=element['sectionstyle']
                          )
 
-        # todo: find a way of inserting the path and the file extension into the structure work sheet
         elif str(element['sectiontype']).lower() == 'photo':
             sect_contains = rowdict[element['sectioncontains']]
             if str(sect_contains).lower() not in ['no photo', 'none', 'nan', '-']:
                 photo = section_contains(sect_contains)
                 for each in photo:
-                    loc = dir + str(element['path']) + '/' + each
+                    # todo: directory should be the folder that spreadsheet is stored in and needs to be extracted.
+                    loc = file_path + str(element['path']) + '/' + each
                     insert_photo(outputfile, loc, 4)
         else:
             print('Valid section header was not found.')
@@ -187,8 +191,6 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object):
 
         if element['pagebreak'] is True:
             outputfile.add_page_break()
-
-# ==> variables <==
 
 
 """
@@ -208,58 +210,88 @@ the following has been implemented:
     - => pagebreak is a True/False value
 """
 
-# ==> cli arguments <==
-# todo: The expected cli form is templar input_file output_file template_file
 
-# todo: cli options include -s --structure -> the worksheet containing the document structure
-# todo: the path needs to provided to click
-dir = '../../resources/input_files/'
-file = 'test_spreadsheet.xlsm'
-path = dir+file
-data_worksheet = 'Master List'
-structure_worksheet = '_structure_'
+@click.command()
+@click.option('--data-worksheet', '-dw', 'data',
+              default='Master List',
+              help='name of the worksheet containing the data to be converted into a word document.'
+              )
+@click.option('--template', '-t', 'template',
+              help='name of the template file to be used used as the basis of the converted file.',
+              # type=click.Path(exists=True)
+              )
+@click.option('--structure-worksheet', '-s', 'structure',
+              default='_structure_',
+              help='name of the worksheet containing the data to format the structure of the outfile document.'
+              )
+@click.argument('input_file',
+                type=click.Path(exists=True)
+                )
+@click.argument('output-file')
+def cli(input_file, output_file, data, structure, template):
+    """
+    This is the command line interface (cli) for the Templar app. For details regarding the operation of the app type
+    `templar --help`.
+
+    The relative path for each file should be provided with each of the options if non-default file names are provided.
+
+    NOTE: If output files are intended to be saved in a separate directory, that directory *must* exist otherwise the
+    output file will not save.
+
+    IMPORTANT: Templar will overwrite, without prompting, any files with the same name in the directory where output
+    files are saved.
+    """
+    file_input = Path(input_file)
+    file_output = output_file
+    wkst_data = data
+    wkst_struct = structure
+    template = template
+    temple(file_input, file_output, wkst_data, wkst_struct, template)
 
 
-# TODO: provide an option to provide a path to the templating template_doc.
-template_doc = Document('../../resources/templates/template.docx')
+def temple(file_input, file_output, wkst_data, wkst_struct, template):
+    """
+    This function acts as a common calling point for the module to allow the module to be run from the command line
+    interface (cli) or from another script.
+    :param file_input: the .xls file containing the data to be converted.
+    :param file_output: name of the output file.
+    :param wkst_data: name of the .xls worksheet containing the data to be processed
+    :param wkst_struct: name of the .xls worksheet detailing how the data shall be processed
+    :param template: the .docx file to be used as the template
+    :return:
+    """
+    # todo: add exception to ensure that the `template` file actually exists.
+    #  `docx.opc.exceptions.PackageNotFoundError' is raised if the file does not exist.
+    file_template = Document(template)
+    # todo: add exceptions to catch files that are missing file extensions.
+    path_input_f = file_input.parents[0]
 
-# ==> data cleanup arguments <==
-# todo: provide a way of describing the columns that need to be removed from the spreadsheet
-remove_columns = []
-#     'Recommended Actions',
-#     'Comment',
-#     'Link',
-# ]Link
+    structure_file = clean_xlsx_table(file_input,
+                                      sheet=wkst_struct,
+                                      head=0,
+                                      clean_hdr=True,
+                                      drop_empty=False
+                                      )
+    structure_dict = structure_file.to_dict('records')
 
-# todo: define a way of replacing columns names with new names.
-#       the list below isn't actually implemented within the script.
-new_cols = [(
-    ' p&s ID',
-    'Hazard_ID'
-)]
+    # todo: allow for `remove_columns` to be defined somewhere
+    remove_columns = []
+    data_file = clean_xlsx_table(file_input,
+                                 sheet=wkst_data,
+                                 # todo: allow for head to be defined somewhere
+                                 head=5,
+                                 rm_column=remove_columns,
+                                 clean_hdr=True,
+                                 drop_empty=True
+                                 )
+    data_dict = data_file.to_dict('records')
 
-# todo: the following information needs to be provided ... somewhere/somehow
-#       - path
-#       - worksheet
-#       - first row of data (head)
-#       - which columns are to be removed
-#       - are headers to be cleaned?
-#       - are empty columns to be dropped.
-#       This information should be separated from the general formatting requirements.
+    with click.progressbar(iterable=data_dict,
+                           label='Conversion progress:',
+                           fill_char='\u2589',
+                           empty_char='\u25AF'
+                           ) as data_dictionary:
+        for row in data_dictionary:
+            format_docx(row, structure_dict, file_template, file_path=str(path_input_f))
 
-# IMPORT THE DATA FROM THE SPREADSHEET
-data_file = clean_xlsx_table(path, sheet=data_worksheet, head=5,
-                             rm_column=remove_columns, clean_hdr=True,
-                             drop_empty=True
-                             )
-data_dict = data_file.to_dict('records')
-
-# IMPORT THE OUTPUT DOCUMENT STRUCTURE FROM THE SPREADSHEET
-structure_file = clean_xlsx_table(path, sheet=structure_worksheet, head=0,
-                                  clean_hdr=True, drop_empty=False
-                                  )
-structure_dict = structure_file.to_dict('records')
-
-for row in data_dict:
-    format_docx(row, structure_dict, template_doc)
-template_doc.save('../../resources/output_files/converted_file.docx')
+    file_template.save(file_output)

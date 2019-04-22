@@ -2,8 +2,10 @@ from setuptools import setup, find_packages
 
 setup(
     name='templar',
-    version='0.1',
-    packages=find_packages(),
+    version='2019.01.00',
+    packages=find_packages(where='src'),
+    package_dir={'': 'src'},
+    # py_modules=['templar'],
     include_package_data=True,
     install_requires=[
         'Click',
@@ -11,9 +13,11 @@ setup(
         'python-docx',
         'pyjanitor',
     ],
-    # TODO: complete the entry points below.
-    # entry_points='''
-    #     [console_scripts]
-    #     yourscript=yourpackage.scripts.yourscript:cli
-    # ''',
+    entry_points={
+        'console_scripts': [
+            'templar = templar:cli',
+            # 'templar = templar.src.templar:cli',
+        ],
+    },
 )
+
