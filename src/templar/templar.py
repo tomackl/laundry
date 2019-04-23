@@ -93,7 +93,7 @@ def insert_paragraph(document: object, text: str, title: str = None,
         document.add_paragraph(text)
         return
     text = text.splitlines()
-    if (title is not None) and (title_style is not None):
+    if (title is not None) and (str(title_style) != 'nan'):
         document.add_paragraph(remove_underscore(title), style=title_style)
     for each in text:
         document.add_paragraph(each, style=section_style)
