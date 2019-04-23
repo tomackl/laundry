@@ -161,22 +161,23 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
     file_path = file_path
     # todo: add error checking here.
     for element in structdict:
+        element_sect_con = str(element['sectioncontains']).lower()
         if str(element['sectiontype']).lower() in ('heading', 'para', 'paragraph'):
-            insert_paragraph(outputfile, str(rowdict[element['sectioncontains']]),
-                             title=str(element['sectioncontains']).title(),
+            insert_paragraph(outputfile, str(rowdict[str(element_sect_con).lower()]),
+                             title=element_sect_con.title(),
                              section_style=element['sectionstyle'],
                              title_style=element['titlestyle']
                              )
 
         elif str(element['sectiontype']).lower() == 'table':
-            table = section_contains(element['sectioncontains'])
+            table = section_contains(element_sect_con)
             data = extract_data(rowdict, table)
             insert_table(outputfile, len(table), len(data),
                          data, section_style=element['sectionstyle']
                          )
 
         elif str(element['sectiontype']).lower() == 'photo':
-            sect_contains = rowdict[element['sectioncontains']]
+            sect_contains = rowdict[element_sect_con]
             if str(sect_contains).lower() not in ['no photo', 'none', 'nan', '-']:
                 photo = section_contains(sect_contains)
                 for each in photo:
@@ -279,10 +280,10 @@ def temple(file_input, file_output, wkst_data, wkst_struct, template):
     data_file = clean_xlsx_table(file_input,
                                  sheet=wkst_data,
                                  # todo: allow for head to be defined somewhere
-                                 head=5,
+                                 head=0,
                                  rm_column=remove_columns,
                                  clean_hdr=True,
-                                 drop_empty=True
+                                 drop_empty=False
                                  )
     data_dict = data_file.to_dict('records')
 
