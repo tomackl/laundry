@@ -16,7 +16,7 @@ Templar operates by:
 
 4. A `template_file` Word document (`.docx` file) is used as the basis of the output file. This file will contain the styles that will be used to format the output file.
 
-5. The app is run using the command line interface (cli).
+5. The app is run using the command line interface (CLI).
 
 
 ## Manual
@@ -72,12 +72,80 @@ Each of the `sectiontypes` have some limit regarding their operation.
 
 - `table` can use any number of columns headings. Each column heading should be separated by a `newline` (preferred option) or by a comma (`,`).
 
-- `sectionstyles` _can_ only be a single value.
+- `sectionstyles` _can_ only be a single value. This is a string (text) that can contain spaces. Make sure that the spelling and capitalisation is correct.
 
-- `titlestyles` _can_ only be a single value.
+- `titlestyles` _can_ only be a single value. This is a string (text) that can contain spaces. Make sure that the spelling and capitalisation is correct.
 
 - `pagebreak` is a `True`/`False` value.
 
-## Data Setout
+## Arranging Spreadsheet Data
 
-[add something about the need to set the worksheets with the column headers in the first row of the worksheet otherwise bad things happen.]
+### `data_worksheet`
+
+The `data_worksheet` contains the data that will be formatted into the `output_file`.
+
+1. The column headers should be in row 0 (that is, the first row) in the worksheet. If not, the `--data-head` option must to be used, *and* the row number specified.  For example if the column headers start on row 5:
+
+    `templar -df=5 -t <template-file> <input-file> <output-file>`
+
+2. Do not use numbers for column header names. This will cause problems.
+
+3. Column header names *should* avoid spaces, and either use underscores (`_`) or use camel case (`ThisIsAnExampleOfCamelCase`). Stick numbers at the end of the names if you need numbers in the name.
+
+4. If you want multiple paragraphs or bullet points, or more than one image, then use alt-enter in an Excel cell to allow this to take place.
+
+5. Include the file extension (for example `.jpg`, `.png`) when entering including images in the cell. File extensions are part of the file name and the app expects them to be included.
+
+### `structure_worksheet`
+
+1. The column headers must be in row 0 (that is, the first row) in the worksheet. If not, the app will not work.
+
+2. The `sectiontype` must be one of the following:
+
+    - `photo`
+    - `para`
+    - `table`
+    - `heading`
+
+3. `table` sections do not require a value for `titlestyle`.
+
+4. `photo` sections do not require a value for `titlestyle` or `sectionstyle`, however they do require `path` to be completed.
+
+5. `sectionbreak` and `pagebreak` must be `TRUE` or `FALSE`.
+
+## FAQs
+
+The following is a list of commonly experienced issues.
+
+### I get something containing `KeyError` and what looks like a column header
+
+The likely culprit is an incorrectly spealt column header in the `structure_worksheet` or you haven't allowed for the conversion of underscores (`_`) replacing spaces within the column headers.
+
+
+### Something like `No sheet named <[some_worksheet_name]>`
+
+Check the `data_worksheet` and `structure_worksheet` names that you've used when running the app from the CLI. Check for spelling mistakes.
+
+### `Error: Invalid value for "input_file"` appears
+
+Check the spelling of the `input_file`'s name and that the file path is correct. The app will check that the `input_file` exists before attempting to run the app.
+
+### `AttributeError: 'int' object has no attribute 'lower'`
+
+The likely issue here is the column headers are not contained in the first row of the `data_worksheet`. Also check that none of the column headers are numbers.
+
+### `Error: Invalid value for "--template" / "-t": Path "[some_path_&_filename].docx" does not exist.`
+
+The `template_file` filename is incorrect. This could also be the path to the file. Check both.
+
+### I have a heap of formatted empty pages at the bottom of my `converted_file`.
+
+For each row of your `data_worksheet` that contains some data the app will produce a formatted section. By removing all the rows that you don't want at the bottom of the `data_worksheet` you can prevent this from occurring. There is a way to drop rows that are missing data, however this requires some work to enable this feature.
+
+### `KeyError: "no style with name '[some_Word_style]'"`
+
+The Word formatting style is not present in the `template_file`. Check that the style name matches exactly its name in Word.
+
+### How do I use a specific Word style?
+
+Due to limitations with Word user specific styles need to be saved to  the `template_file` for them to be available. If the specified name is not present in the `template_file` then the app will not function.

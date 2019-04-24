@@ -215,21 +215,26 @@ the following has been implemented:
 @click.command()
 @click.option('--data-worksheet', '-dw', 'data',
               default='Master List',
-              help='name of the worksheet containing the data to be converted into a word document.'
+              help='Name of the worksheet containing the data to be converted into a word document.'
               )
 @click.option('--template', '-t', 'template',
-              help='name of the template file to be used used as the basis of the converted file.',
-              # type=click.Path(exists=True)
+              help='Name of the template file to be used used as the basis of the converted file.',
+              type=click.Path(exists=True)
               )
 @click.option('--structure-worksheet', '-s', 'structure',
               default='_structure_',
-              help='name of the worksheet containing the data to format the structure of the outfile document.'
+              help='Name of the worksheet containing the data to format the structure of the outfile document.'
+              )
+@click.option('--data-head', '-dh', 'data_head',
+              default=0,
+              type=int,
+              help="The number of the data worksheet's row containing the column headers. The default is 0."
               )
 @click.argument('input_file',
                 type=click.Path(exists=True)
                 )
 @click.argument('output-file')
-def cli(input_file, output_file, data, structure, template):
+def cli(input_file, output_file, data, structure, template, data_head):
     """
     This is the command line interface (cli) for the Templar app. For details regarding the operation of the app type
     `templar --help`.
@@ -247,10 +252,10 @@ def cli(input_file, output_file, data, structure, template):
     wkst_data = data
     wkst_struct = structure
     template = template
-    temple(file_input, file_output, wkst_data, wkst_struct, template)
+    temple(file_input, file_output, wkst_data, wkst_struct, template, data_head)
 
 
-def temple(file_input, file_output, wkst_data, wkst_struct, template):
+def temple(file_input, file_output, wkst_data, wkst_struct, template, data_head):
     """
     This function acts as a common calling point for the module to allow the module to be run from the command line
     interface (cli) or from another script.
@@ -259,8 +264,10 @@ def temple(file_input, file_output, wkst_data, wkst_struct, template):
     :param wkst_data: name of the .xls worksheet containing the data to be processed
     :param wkst_struct: name of the .xls worksheet detailing how the data shall be processed
     :param template: the .docx file to be used as the template
+    :param data_head: the number of the data worksheet's row containing the column headers.
     :return:
     """
+    # print(isinstance(data_head, int))
     # todo: add exception to ensure that the `template` file actually exists.
     #  `docx.opc.exceptions.PackageNotFoundError' is raised if the file does not exist.
     file_template = Document(template)
@@ -279,8 +286,7 @@ def temple(file_input, file_output, wkst_data, wkst_struct, template):
     remove_columns = []
     data_file = clean_xlsx_table(file_input,
                                  sheet=wkst_data,
-                                 # todo: allow for head to be defined somewhere
-                                 head=0,
+                                 head=data_head,
                                  rm_column=remove_columns,
                                  clean_hdr=True,
                                  drop_empty=False
