@@ -237,7 +237,7 @@ the following has been implemented:
 def cli(input_file, output_file, data, structure, template, data_head):
     """
     This is the command line interface (cli) for the Templar app. For details regarding the operation of the app type
-    `templar --help`.
+    `laundry --help`.
 
     The relative path for each file should be provided with each of the options if non-default file names are provided.
 

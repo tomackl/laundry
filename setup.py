@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
-    name='templar',
+    name='laundry',
     version='2019.01.0',
     author='Tom Ackland',
     author_email='ackland dot thomas at gmail dot com',
@@ -23,14 +23,16 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'templar = templar:cli',
+            'laundry = laundry:cli',
         ],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
         'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Microsoft :: Windows :: Windows 10',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
 )

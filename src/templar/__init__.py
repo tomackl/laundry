@@ -1,1 +1,0 @@
-from templar.templar import *

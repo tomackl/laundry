@@ -1,12 +1,12 @@
-# Templar: Beating spreadsheets into shape
+# Laundry: Folding spreadsheets into neat shapes
 
-Spreadsheets are easy to record and manipulate data with but do a poor job of displaying the data in an easy to read way. Templar provides a simple way of converting spread data into word by by specifying the output document's format within the spreadsheet itself.
+Spreadsheets are easy to record and manipulate data with but do a poor job of displaying the data in an easy to read way. Laundry provides a simple way of converting spread data into word by by specifying the output document's format within the spreadsheet itself.
 
-While spreadsheets are, in manner aspects, similar to database tables, Templar is only a formatting tool and not a database.
+While spreadsheets are, in manner aspects, similar to database tables, Laundry is only a formatting tool and not a database.
 
 ### Overview
 
-Templar operates by:
+Laundry operates by:
 
 1. Having a spreadsheet containing some organised data stored in the `data_worksheet`.
 
@@ -86,7 +86,7 @@ The `data_worksheet` contains the data that will be formatted into the `output_f
 
 1. The column headers should be in row 0 (that is, the first row) in the worksheet. If not, the `--data-head` option must to be used, *and* the row number specified.  For example if the column headers start on row 5:
 
-    `templar -df=5 -t <template-file> <input-file> <output-file>`
+    `Laundry -df=5 -t <template-file> <input-file> <output-file>`
 
 2. Do not use numbers for column header names. This will cause problems.
 
