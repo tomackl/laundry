@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setup(
     name='laundry',
-    version='2019.01.0',
+    version='2019.0.1',
     author='Tom Ackland',
     author_email='ackland.thomas@gmail.com',
     description='A app for bashing .xlsx files into .docx.',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    python_requires=">=3.7",
+    python_requires=">=3.6",
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
     include_package_data=True,
