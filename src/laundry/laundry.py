@@ -252,10 +252,10 @@ def cli(input_file, output_file, data, structure, template, data_head):
     wkst_data = data
     wkst_struct = structure
     template = template
-    temple(file_input, file_output, wkst_data, wkst_struct, template, data_head)
+    wash(file_input, file_output, wkst_data, wkst_struct, template, data_head)
 
 
-def temple(file_input, file_output, wkst_data, wkst_struct, template, data_head):
+def wash(file_input, file_output, wkst_data, wkst_struct, template, data_head):
     """
     This function acts as a common calling point for the module to allow the module to be run from the command line
     interface (cli) or from another script.
