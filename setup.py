@@ -7,7 +7,7 @@ setup(
     name='laundry',
     version='2019.01.0',
     author='Tom Ackland',
-    author_email='ackland dot thomas at gmail dot com',
+    author_email='ackland.thomas@gmail.com',
     description='A app for bashing .xlsx files into .docx.',
     long_description=long_description,
     long_description_content_type="text/markdown",
