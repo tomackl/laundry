@@ -267,7 +267,6 @@ def wash(file_input, file_output, wkst_data, wkst_struct, template, data_head):
     :param data_head: the number of the data worksheet's row containing the column headers.
     :return:
     """
-    # print(isinstance(data_head, int))
     # todo: add exception to ensure that the `template` file actually exists.
     #  `docx.opc.exceptions.PackageNotFoundError' is raised if the file does not exist.
     file_template = Document(template)
