@@ -236,7 +236,7 @@ the following has been implemented:
 @click.argument('output-file')
 def cli(input_file, output_file, data, structure, template, data_head):
     """
-    This is the command line interface (cli) for the Templar app. For details regarding the operation of the app type
+    This is the command line interface (cli) for the Laundry app. For details regarding the operation of the app type
     `laundry --help`.
 
     The relative path for each file should be provided with each of the options if non-default file names are provided.
@@ -244,7 +244,7 @@ def cli(input_file, output_file, data, structure, template, data_head):
     NOTE: If output files are intended to be saved in a separate directory, that directory *must* exist otherwise the
     output file will not save.
 
-    IMPORTANT: Templar will overwrite, without prompting, any files with the same name in the directory where output
+    IMPORTANT: Laundry will overwrite, without prompting, any files with the same name in the directory where output
     files are saved.
     """
     file_input = Path(input_file)
