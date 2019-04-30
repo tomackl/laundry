@@ -5,10 +5,10 @@ with open("README.md", "r") as fh:
 
 setup(
     name='laundry',
-    version='2019.0.1',
+    version='2019.0.3',
     author='Tom Ackland',
     author_email='ackland.thomas@gmail.com',
-    description='A app for bashing .xlsx files into .docx.',
+    description='Folding spreadsheets into neat shapes.',
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=">=3.6",
