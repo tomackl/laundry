@@ -2,7 +2,8 @@ from docx import Document
 from docx.shared import Inches
 import pandas as pd
 import janitor
-from pathlib import Path
+from pathlib import Path, PurePath
+
 from typing import List, Iterable, Dict, Tuple, Any, NewType
 import click
 
@@ -178,11 +179,11 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
 
         elif str(element['sectiontype']).lower() == 'photo':
             sect_contains = rowdict[element_sect_con]
+            q = confirm_path([file_path, element['path']])
             if str(sect_contains).lower() not in ['no photo', 'none', 'nan', '-']:
                 photo = section_contains(sect_contains)
                 for each in photo:
-                    # todo: directory should be the folder that spreadsheet is stored in and needs to be extracted.
-                    loc = file_path + str(element['path']) + '/' + each
+                    loc = q.joinpath(each)
                     insert_photo(outputfile, loc, 4)
         else:
             print('Valid section header was not found.')
@@ -192,6 +193,20 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
 
         if element['pagebreak'] is True:
             outputfile.add_page_break()
+
+
+def confirm_path(filepath: List[str]) -> Path:
+    """
+    Convert the contents of the passed list into a Path
+    :param filepath: a list of path names as string
+    :return: Path
+    """
+    filepath = filepath
+    p = PurePath()
+    for each in filepath:
+        q = PurePath(each.replace('\\', '/').strip('/'))
+        p = p / Path(q.as_posix())
+    return Path(p)
 
 
 """
@@ -215,20 +230,22 @@ the following has been implemented:
 @click.command()
 @click.option('--data-worksheet', '-dw', 'data',
               default='Master List',
-              help='Name of the worksheet containing the data to be converted into a word document.'
+              help='Name of the worksheet containing the data to be converted into a word document. '
+                   'The default is "Master List".'
               )
 @click.option('--template', '-t', 'template',
               help='Name of the template file to be used used as the basis of the converted file.',
               type=click.Path(exists=True)
               )
-@click.option('--structure-worksheet', '-s', 'structure',
-              default='_structure_',
-              help='Name of the worksheet containing the data to format the structure of the outfile document.'
+@click.option('--structure-worksheet', '-sw', '-s', 'structure',
+              default='_structure',
+              help='Name of the worksheet containing the data to format the structure of the outfile document. '
+                   'The default is _structure.'
               )
-@click.option('--data-head', '-dh', 'data_head',
+@click.option('--data-header', '-dh', 'data_head',
               default=0,
               type=int,
-              help="The number of the data worksheet's row containing the column headers. The default is 0."
+              help="The row number of the data worksheet's row containing the column headers. The default is 0."
               )
 @click.argument('input_file',
                 type=click.Path(exists=True)
@@ -288,16 +305,18 @@ def wash(file_input, file_output, wkst_data, wkst_struct, template, data_head):
                                  head=data_head,
                                  rm_column=remove_columns,
                                  clean_hdr=True,
-                                 drop_empty=False
+                                 # 2019.0.4 set drop_empty to True to allow the empty columns to be removed.
+                                 drop_empty=True
                                  )
     data_dict = data_file.to_dict('records')
 
     with click.progressbar(iterable=data_dict,
                            label='Conversion progress:',
-                           fill_char='\u2589',
-                           empty_char='\u25AF'
+                           fill_char='|',
+                           empty_char='_'
                            ) as data_dictionary:
         for row in data_dictionary:
             format_docx(row, structure_dict, file_template, file_path=str(path_input_f))
+            # format_docx(row, structure_dict, file_template, file_path=str(path_input_f))
 
     file_template.save(file_output)
