@@ -305,8 +305,7 @@ def wash(file_input, file_output, wkst_data, wkst_struct, template, data_head):
                                  head=data_head,
                                  rm_column=remove_columns,
                                  clean_hdr=True,
-                                 # 2019.0.4 set drop_empty to True to allow the empty columns to be removed.
-                                 drop_empty=True
+                                 drop_empty=False
                                  )
     data_dict = data_file.to_dict('records')
 
@@ -317,6 +316,5 @@ def wash(file_input, file_output, wkst_data, wkst_struct, template, data_head):
                            ) as data_dictionary:
         for row in data_dictionary:
             format_docx(row, structure_dict, file_template, file_path=str(path_input_f))
-            # format_docx(row, structure_dict, file_template, file_path=str(path_input_f))
 
     file_template.save(file_output)
