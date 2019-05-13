@@ -31,7 +31,7 @@ def clean_xlsx_table(file_path: str, sheet: str, head: int = 0,
     if clean_hdr is not False:
         df = df.clean_names()
     if drop_empty is True:
-        df = df.dropna()
+        df = df.dropna(thresh=2)
     return df
 
 
@@ -144,9 +144,17 @@ def insert_photo(document: object, photo: str, width: int = 4):
     :param width: width of the image in Inches
     :return:
     """
-    # todo: add an exception here to handle bad filenames and paths
-    photo_path = Path(photo)
-    document.add_picture(str(photo_path), width=Inches(width))
+    photo_formats = ['', '.jpg', '.jpeg', '.png', '.tiff']
+    # photo_path = Path(photo)
+    # document.add_picture(str(photo_path), width=Inches(width))
+    for ext in photo_formats:
+        photo_path = Path(str(photo) + ext)
+        if photo_path.exists():
+            document.add_picture(str(photo_path), width=Inches(width))
+            return True
+    print('\nPhoto {} does not exist. Check file extension.'.format(photo))
+    document.add_paragraph('PHOTO "{}" NOT FOUND\n'.format(str(photo).upper()))
+
 
 
 def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: str):
@@ -206,7 +214,10 @@ def confirm_path(filepath: List[str]) -> Path:
     for each in filepath:
         q = PurePath(each.replace('\\', '/').strip('/'))
         p = p / Path(q.as_posix())
-    return Path(p)
+    r = Path(p)
+    if r.is_dir():
+        return r
+    return 'Incorrect path.'
 
 
 """
@@ -305,7 +316,6 @@ def wash(file_input, file_output, wkst_data, wkst_struct, template, data_head):
                                  head=data_head,
                                  rm_column=remove_columns,
                                  clean_hdr=True,
-                                 # 2019.0.4 set drop_empty to True to allow the empty columns to be removed.
                                  drop_empty=True
                                  )
     data_dict = data_file.to_dict('records')

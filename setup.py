@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='laundry',
-    version='2019.0.3',
+    version='2019.0.4',
     author='Tom Ackland',
     author_email='ackland.thomas@gmail.com',
     description='Folding spreadsheets into neat shapes.',

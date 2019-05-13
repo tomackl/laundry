@@ -63,3 +63,6 @@ def test_insert_photo():
 
 def test_structure_docs():
     pass
+
+def test_confirm_path():
+    pass
