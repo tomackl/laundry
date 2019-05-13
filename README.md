@@ -43,6 +43,8 @@ This defines the type of section that will be inserted with the output document.
 - `heading`: Will use the data contained within the cell as a section heading made up of a title (column heading) and a paragraph (cell contents).
 
 - `photo`: Inserts one or more photos (images) into the paragraph. Multiple images can be added by including them in the `sectioncontains` column. The `photo` column heading is used to provide a file path to the directory containing the files.
+    
+    - _New in 2019.0.4_: Including the photo's file extension is not required. The app will sequence through a number of popular formats before providing an error message to the standard output and adding the error message to the output document.
 
 #### `sectioncontains`
 This contains one or more of the column names used in the `data` worksheet. Multiple column names can be used with `table` using  `sectiontypes` provided the are separated by `new lines` (alt + enter) in the cell, or commas.  `new lines` are the preferred method.
