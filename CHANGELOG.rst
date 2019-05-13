@@ -12,7 +12,6 @@ Features
 Bug Fixes
 ---------
 
-* Empty data worksheet columns will be removed if one or more columns is empty in the worksheet.
 * The path component has been modified to allow either Windows or POSIX paths to be used. This allows a standard template to be used without concern regarding the OS it is run on.
 
 Other
