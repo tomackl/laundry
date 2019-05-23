@@ -8,6 +8,7 @@ setup(
     version='2019.0.4',
     author='Tom Ackland',
     author_email='ackland.thomas@gmail.com',
+    url='https://github.com/tomackl/laundry',
     description='Folding spreadsheets into neat shapes.',
     long_description=long_description,
     long_description_content_type="text/markdown",
