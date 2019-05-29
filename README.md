@@ -6,7 +6,7 @@ While spreadsheets are, in manner aspects, similar to database tables, Laundry i
 
 ### Overview
 
-Laundry operates by:
+A general overview of how Laundry operates is:
 
 1. Having a spreadsheet containing some organised data stored in the `data_worksheet`.
 
@@ -151,3 +151,14 @@ The Word formatting style is not present in the `template_file`. Check that the 
 ### How do I use a specific Word style?
 
 Due to limitations with Word user specific styles need to be saved to  the `template_file` for them to be available. If the specified name is not present in the `template_file` then the app will not function.
+
+## `multi`
+
+worksheet -> addressed
+structure_worksheet -> addressed
+header_row
+remove_columns
+drop_empty_columns
+template_file -> addressed
+filter_rows
+output_file

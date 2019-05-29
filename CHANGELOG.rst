@@ -1,7 +1,17 @@
-2019.0.4
+2019.0.5
 ========
 
-NOT RELEASED
+Features
+--------
+
+* The ability to batch multiple output files at the same time has been.
+* The app has two sub-commands "single" and "multi". "single" allows a single output file to be produced using the standard flags, "multi" requires reference to a batch worksheet within the spreadsheet.
+* A number of error checks that allow for missing worksheets to be detected and addressed.
+
+
+
+2019.0.4
+========
 
 Features
 --------
