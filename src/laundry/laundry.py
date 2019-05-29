@@ -3,7 +3,6 @@ from docx.shared import Inches
 import pandas as pd
 import janitor
 from pathlib import Path, PurePath
-
 from typing import List, Iterable, Dict, Tuple, Any, NewType
 import click
 
@@ -186,7 +185,7 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
 
         elif str(element['sectiontype']).lower() == 'photo':
             sect_contains = rowdict[element_sect_con]
-            q = confirm_path([file_path, element['path']])
+            q = confirm_path_directory([file_path, element['path']])
             if str(sect_contains).lower() not in ['no photo', 'none', 'nan', '-']:
                 photo = section_contains(sect_contains)
                 for each in photo:
@@ -202,9 +201,10 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
             outputfile.add_page_break()
 
 
-def confirm_path(filepath: List[str]) -> Path:
+def confirm_path_directory(filepath: List[str]) -> Path:
     """
-    Convert the contents of the passed list into a Path
+    Convert the contents of the passed list into a Path. This function assumes
+    that the sum of the passed list will be a single path to a directory.
     :param filepath: a list of path names as string
     :return: Path
     """
@@ -217,6 +217,21 @@ def confirm_path(filepath: List[str]) -> Path:
     if r.is_dir():
         return r
     return 'Incorrect path.'
+
+
+def confirm_path_file(filepath: List[str]) -> bool:
+    """
+    Convert the contents of the passed list into a Path and if it points to a file
+    return True.
+    :param filepath:
+    :return:
+    """
+    filepath = filepath
+    p = PurePath()
+    for each in filepath:
+        q = PurePath(each.replace('\\', '/').strip('/'))
+        p = p / Path(q.as_posix())
+    return Path(p).exists()
 
 
 """
@@ -237,12 +252,60 @@ the following has been implemented:
 """
 
 
-@click.command()
+def worksheet_present(sheet_names: List[str], sheets: List[str]) -> bool:
+    """
+    Check whether the worksheets in sheets exist within the spreadsheet returning
+    True if they are present.
+    :param sheet_names:
+    :param sheets:
+    :return:
+    """
+    return set(sheet_names) >= set(sheets)
+
+
+def remove_columns(load: data_frame, columns: List[str]) -> dict:
+    """
+    Pass a dataframe dictionary and list with the column names to be dropped.
+    :param load:
+    :param columns:
+    :return:
+    """
+    return load.drop(columns=columns)
+
+
+def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_input_f: str,
+                file_output: str):
+    # todo: Add to changelog 2019.0.5
+    """
+    Output a file using the arguments passed from the CLI.
+    :param structure_dict:
+    :param data_dict:
+    :param file_template:
+    :param path_input_f:
+    :param file_output:
+    :return:
+    """
+    with click.progressbar(iterable=data_dict,
+                           label='Conversion progress:',
+                           fill_char='|',
+                           empty_char='_'
+                           ) as data_dictionary:
+        for row in data_dictionary:
+            format_docx(row, structure_dict, file_template, file_path=str(path_input_f))
+
+    file_template.save(file_output)
+
+
+@click.group()
+def cli():
+    """
+    This is the command line interface(CLI) for the Laundry app (2019.0.5).
+    For details regarding the operation of the app type `laundry --help`.
+    """
+    pass
+
+@cli.command()
 # Todo: add to changelog 2019.0.5
-@click.option('--format-worksheet', '-f', 'format_wksht',
-              help='Name of the worksheet containing the format data. This worksheet'
-                   ' defines the structure and data worksheets and other higher level '
-                   'formatting details.')
 @click.option('--data-worksheet', '-dw', 'data',
               default='Master List',
               help='Name of the worksheet containing the data to be converted into a '
@@ -268,11 +331,10 @@ the following has been implemented:
 @click.argument('input_file',
                 type=click.Path(exists=True)
                 )
-@click.argument('output-file')
-def cli(input_file, output_file, data, structure, template, data_head, format_wksht):
+@click.argument('output_file')
+def single(input_file, output_file, data, structure, template, data_head):
     """
-    This is the command line interface (CLI) for the Laundry app (2019.0.5). For details regarding the operation of the app type
-    `laundry --help`.
+    Run laundry on a single worksheet.
 
     The relative path for each file should be provided with each of the options if non-default file names are provided.
 
@@ -287,11 +349,27 @@ def cli(input_file, output_file, data, structure, template, data_head, format_wk
     wkst_data = data
     wkst_struct = structure
     template = template
-    wkst_format = format_wksht
-    wash(file_input, file_output, wkst_data, wkst_struct, template, data_head, wkst_format)
+    wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_head)
 
 
-def wash(file_input, file_output, wkst_data, wkst_struct, template, data_head, wkst_format):
+@cli.command()
+@click.option('--batch-worksheet', '-b', 'batch',
+              help='Name of the worksheet containing the format data. This worksheet'
+                   ' defines the structure and data worksheets and other higher level '
+                   'formatting details.')
+@click.argument('input_file',
+                type=click.Path(exists=True)
+                )
+def multi(input_file, batch):
+    """
+    Run Laundry on multiple worksheets.
+    """
+    file_input = Path(input_file)
+    wksht_batch = batch
+    wash_multi(file_input, wksht_batch)
+
+
+def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_head):
     """
     This function acts as a common calling point for the module to allow the module to be run from the command line
     interface (cli) or from another script.
@@ -301,7 +379,6 @@ def wash(file_input, file_output, wkst_data, wkst_struct, template, data_head, w
     :param wkst_struct: name of the .xls worksheet detailing how the data shall be processed
     :param template: the .docx file to be used as the template
     :param data_head: the number of the data worksheet's row containing the column headers.
-    :return:
     """
     # todo: add exception to ensure that the `template` file actually exists.
     #  `docx.opc.exceptions.PackageNotFoundError' is raised if the file does not exist.
@@ -310,29 +387,13 @@ def wash(file_input, file_output, wkst_data, wkst_struct, template, data_head, w
     path_input_f = file_input.parents[0]
 
     check_load = pd.ExcelFile(file_input).sheet_names
-    if (wkst_format is not None) and (wkst_format in check_load):
-        # todo: Add to Changelog addition of format worksheet 2019.0.5
-        format_file = clean_xlsx_table(file_input,
-                                       sheet=wkst_format,
-                                       head=0,
-                                       clean_hdr=True,
-                                       drop_empty=False,
-                                       )
-        sort_colours(format_file.to_dict('records'))
 
-    elif (wkst_struct in check_load) and (wkst_data in check_load):
-        structure_file = clean_xlsx_table(file_input,
-                                          sheet=wkst_struct,
-                                          head=0,
-                                          clean_hdr=True,
-                                          drop_empty=False
+    if worksheet_present(check_load, [wkst_struct, wkst_data]):
+        structure_file = clean_xlsx_table(file_input, sheet=wkst_struct, head=0,
+                                          clean_hdr=True, drop_empty=False
                                           )
-        data_file = clean_xlsx_table(file_input,
-                                     sheet=wkst_data,
-                                     head=data_head,
-                                     # rm_column=remove_columns,
-                                     clean_hdr=True,
-                                     drop_empty=True
+        data_file = clean_xlsx_table(file_input, sheet=wkst_data, head=data_head,
+                                     clean_hdr=True, drop_empty=True
                                      )
         single_load(structure_file.to_dict('records'), data_file.to_dict('records'),
                     file_template, path_input_f, file_output)
@@ -340,43 +401,65 @@ def wash(file_input, file_output, wkst_data, wkst_struct, template, data_head, w
         print('Valid data not found.')
 
 
-def sort_colours(load: Dict):
-    # todo: Add to changelog 2019.0.5
+def wash_multi(file_input, wksht_batch):
     """
-    This function will control take the _format worksheet and call the appropriate functions to convert the files.
-    :param load: A dictionary
-    :return:
+    This function acts as a common calling point for the module to allow the module to be run from the command line
+    interface (cli) or from another script.
+    :param file_input: the .xls file containing the data to be converted.
+    :param wksht_batch: name of the .xls worksheet detailing how the data shall be processed
     """
-    # worksheet
-    # structure_worksheet
-    # header_row
-    # remove_columns
-    # drop_empty_columns
-    # photo_path
-    # template_file
-    # output_file
-    pass
+    # todo: Add to Changelog addition of format worksheet 2019.0.5
+    # todo: add exception to ensure that the `template` file actually exists.
+    #  `docx.opc.exceptions.PackageNotFoundError' is raised if the file does not exist.
+    # todo: add exceptions to catch files that are missing file extensions.
+    path_input_f = file_input.parents[0]
+
+    check_load = pd.ExcelFile(file_input).sheet_names
+    if worksheet_present(check_load, [wksht_batch]):
+
+        format_file = clean_xlsx_table(file_input, sheet=wksht_batch, head=0,
+                                       clean_hdr=True, drop_empty=False,
+                                       )
+        sort_colours(format_file.to_dict('records'), check_load, file_input, path_input_f)
+
+    else:
+        print('Valid data not found.')
 
 
-def single_load(structure_dict: dict, data_dict: dict, file_template: str, path_input_f: str,
-                file_output: str):
+def sort_colours(load: Dict, check_load, file_input, path_input_f):
     # todo: Add to changelog 2019.0.5
     """
-    Output a file using the arguments passed from the CLI.
-    :param structure_dict:
-    :param data_dict:
-    :param file_template:
+    This function will control take the _format worksheet and call the appropriate
+    functions to convert the files.
+    :param load: the 'batch' dictionary,
+    :param check_load: a list containing the spreadsheets
+    :param file_input:
     :param path_input_f:
-    :param file_output:
     :return:
     """
-    with click.progressbar(iterable=data_dict,
-                           label='Conversion progress:',
-                           fill_char='|',
-                           empty_char='_'
-                           ) as data_dictionary:
-        for row in data_dictionary:
-            format_docx(row, structure_dict, file_template, file_path=str(path_input_f))
 
-    file_template.save(file_output)
+    for row in load:
+        if not worksheet_present(check_load, [row['structure_worksheet'], row['worksheet']]):
+            print('Check that worksheets {} and {} present in spreadsheet.'
+                  .format(row['structure_worksheet'], row['worksheet']))
+            break
 
+        elif not confirm_path_file([row['template_file']]):
+            print('Template file "{}" could not be found.'.format(row['template_file']))
+            break
+
+        sf = clean_xlsx_table(file_input,
+                              row['structure_worksheet'],
+                              head=0,
+                              clean_hdr=True,
+                              drop_empty=False
+                              )
+        df = clean_xlsx_table(file_input,
+                              row['worksheet'],
+                              head=row['header_row'],
+                              # rm_column=remove_columns,
+                              clean_hdr=True,
+                              drop_empty=True
+                              )
+        single_load(sf.to_dict('records'), df.to_dict('records'),
+                    Document(row['template_file']), path_input_f, str(row['output_file']))
