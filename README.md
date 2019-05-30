@@ -1,6 +1,11 @@
 # Laundry: Folding spreadsheets into neat shapes
 
-Spreadsheets are easy to record and manipulate data with but do a poor job of displaying the data in an easy to read way. Laundry provides a simple way of converting spread data into word by by specifying the output document's format within the spreadsheet itself.
+Spreadsheets are easy to record and manipulate data with but do a poor job of displaying the data in an easy to read way. Laundry provides a simple way of converting spread data into Word files by by specifying the output document's format within the spreadsheet itself.
+
+Laundry provides two modes in which to generate the Word files:
+
+* Single file mode, where details of a single output file are defined and passed at the CLI, and
+* Multi file mode. where multiple output files can be defined and batched from a worksheet within the orignal Excel spreadheet.
 
 While spreadsheets are, in manner aspects, similar to database tables, Laundry is only a formatting tool and not a database.
 
@@ -30,6 +35,8 @@ The `input_file` __must__ contain a worksheet that contains the structure or out
 The `input_file`'s data is stored in the `data_worksheet`. This worksheet can be given any name provided it doesn't clash with the `structure_worksheet` name.
 
 ### Structure Worksheet
+
+A `structure worksheet` must be defined for each output file that will be produced. In `single` mode the worksheet is assumed to be associated with the `data worksheet` that is passed to the app. In `multi` mode a single `structure worksheet` can be used for multiple output files, however it must be explicitly referenced for each output file. 
 
 The following column names __must__ implemented in the `structure_worksheet`. If they are not used the app will not work.
 
@@ -86,9 +93,13 @@ Each of the `sectiontypes` have some limit regarding their operation.
 
 The `data_worksheet` contains the data that will be formatted into the `output_file`.
 
-1. The column headers should be in row 0 (that is, the first row) in the worksheet. If not, the `--data-head` option must to be used, *and* the row number specified.  For example if the column headers start on row 5:
+1. The column headers should be in row 0 (that is, the first row) in the worksheet. If not, 
+    
+    * When using `single` sub-command the `--data-head` option must to be used, *and* the row number specified.  For example if the column headers start on row 5:
 
-    `Laundry -df=5 -t <template-file> <input-file> <output-file>`
+    `Laundry single -df=5 -t <template-file> <input-file> <output-file>`
+    
+    *  When using `multi` mode the row must be recorded in the `header row` column.,
 
 2. Do not use numbers for column header names. This will cause problems.
 
@@ -114,6 +125,9 @@ The `data_worksheet` contains the data that will be formatted into the `output_f
 4. `photo` sections do not require a value for `titlestyle` or `sectionstyle`, however they do require `path` to be completed.
 
 5. `sectionbreak` and `pagebreak` must be `TRUE` or `FALSE`.
+
+### `format_worksheet`
+
 
 ## FAQs
 
