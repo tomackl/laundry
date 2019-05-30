@@ -146,7 +146,7 @@ def insert_photo(document: object, photo: str, width: int = 4):
     """
     photo_formats = ['', '.jpg', '.jpeg', '.png', '.tiff']
     for ext in photo_formats:
-        photo_path = Path(str(photo) + ext)
+        photo_path = Path(photo + ext)
         if photo_path.exists():
             document.add_picture(str(photo_path), width=Inches(width))
             return True
@@ -190,7 +190,7 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
                 photo = section_contains(sect_contains)
                 for each in photo:
                     loc = q.joinpath(each)
-                    insert_photo(outputfile, loc, 4)
+                    insert_photo(outputfile, str(loc), 4)
         else:
             print('Valid section header was not found.')
 
@@ -234,24 +234,6 @@ def confirm_path_file(filepath: List[str]) -> bool:
     return Path(p).exists()
 
 
-"""
-the following has been implemented:
-
-* sectioncontains: list[str] -> containing the column titles
-* sectiontype: str -> paragraph/table/heading/photo
-* sectionstyle: str -> Word paragraph style
-* titlestyle: str -> Word title style. This does not apply to tables.
-* sectionbreak: bool -> is a break required after each section?
-* pagebreak: bool -> is a page break required after the section?
-    - => Headings should be a single column per paragraph
-    - => Paragraphs should be a single column per paragraph
-    - => Tables can be any number of columns (there will be practical limits)
-    - => section_styles _can_ only be a single value
-    - => title_styles _can_ only be a single value
-    - => pagebreak is a True/False value
-"""
-
-
 def worksheet_present(sheet_names: List[str], sheets: List[str]) -> bool:
     """
     Check whether the worksheets in sheets exist within the spreadsheet returning
@@ -275,15 +257,13 @@ def remove_columns(load: data_frame, columns: List[str]) -> dict:
 
 def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_input_f: str,
                 file_output: str):
-    # todo: Add to changelog 2019.0.5
     """
-    Output a file using the arguments passed from the CLI.
-    :param structure_dict:
-    :param data_dict:
-    :param file_template:
-    :param path_input_f:
-    :param file_output:
-    :return:
+    This function controls the production of the output file and is called for both the single and multi modes.
+    :param structure_dict: defines the structure of the output file
+    :param data_dict: contains the data to be manipulated and exported in the output file.
+    :param file_template: template document that will form the basis of the output file.
+    :param path_input_f: path to the current working directy.
+    :param file_output: output file name.
     """
     with click.progressbar(iterable=data_dict,
                            label='Conversion progress:',
@@ -408,7 +388,6 @@ def wash_multi(file_input, wksht_batch):
     :param file_input: the .xls file containing the data to be converted.
     :param wksht_batch: name of the .xls worksheet detailing how the data shall be processed
     """
-    # todo: Add to Changelog addition of format worksheet 2019.0.5
     # todo: add exception to ensure that the `template` file actually exists.
     #  `docx.opc.exceptions.PackageNotFoundError' is raised if the file does not exist.
     # todo: add exceptions to catch files that are missing file extensions.
@@ -427,7 +406,6 @@ def wash_multi(file_input, wksht_batch):
 
 
 def sort_colours(load: Dict, check_load, file_input, path_input_f):
-    # todo: Add to changelog 2019.0.5
     """
     This function will control take the _format worksheet and call the appropriate
     functions to convert the files.
