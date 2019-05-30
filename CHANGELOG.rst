@@ -8,6 +8,18 @@ Features
 * The app has two sub-commands "single" and "multi". "single" allows a single output file to be produced using the standard flags, "multi" requires reference to a batch worksheet within the spreadsheet.
 * A number of error checks that allow for missing worksheets to be detected and addressed.
 
+Bug Fixes
+---------
+
+Other
+-----
+
+* Dedicated function to control exporting of the document,
+
+Deprecations
+------------
+
+* None
 
 
 2019.0.4
