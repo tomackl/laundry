@@ -417,7 +417,7 @@ def sort_colours(load: Dict, check_load, file_input, path_input_f):
     """
 
     for row in load:
-        if not worksheet_present(check_load, [row['structure_worksheet'], row['worksheet']]):
+        if not worksheet_present(check_load, [row['structure_worksheet'], row['data_worksheet']]):
             print('Check that worksheets {} and {} present in spreadsheet.'
                   .format(row['structure_worksheet'], row['worksheet']))
             break
@@ -433,7 +433,7 @@ def sort_colours(load: Dict, check_load, file_input, path_input_f):
                               drop_empty=False
                               )
         df = clean_xlsx_table(file_input,
-                              row['worksheet'],
+                              row['data_worksheet'],
                               head=row['header_row'],
                               # rm_column=remove_columns,
                               clean_hdr=True,
