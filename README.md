@@ -13,16 +13,27 @@ While spreadsheets are, in manner aspects, similar to database tables, Laundry i
 
 A general overview of how Laundry operates is:
 
-1. Having a spreadsheet containing some organised data stored in the `data_worksheet`.
+1. Having a spreadsheet containing some organised data stored in the `data_worksheet`. There is no restriction on how the data stored is the `data_worksheet` other than it must be a flat table.
 
 2. Defining the output structure within a separate worksheet contained within the spreadsheet. This is known as the `structure_worksheet`.
 
-3. The `structure_worksheet` references data to be formatted by using the the data's column names, the styles contained within the `template_file`, and how the data will be arranged, for example, as a table, paragraph or photo. The `structure_worksheet` does have a specific format that must be used to ensure that the conversion process takes place.
+3. The `structure_worksheet` references data to be formatted by using the the data's column names, the styles contained within the `template_file`, and how the data will be arranged, for example, as a table, paragraph or photo. The `structure_worksheet` does have a specific format that must be used to ensure that the conversion process takes place. 
 
 4. A `template_file` Word document (`.docx` file) is used as the basis of the output file. This file will contain the styles that will be used to format the output file.
 
-5. The app is run using the command line interface (CLI).
+5. If a batch process is desired a `batch_worksheet` will be required to define the above requirements.
 
+6. The app is run using the command line interface (CLI).
+
+## Running the App
+
+Laundry is operated from the commeand line, so if you're not familiar with command line then you'll need to familarise youself with it first.
+
+There are two ways of running Laundry, single mode and and multi mode. 
+
+Single mode will convert a single `data_worksheet` into a `output_file` based on the `template_file` using the structure defined in the `structure_worksheet`. You may need to define the `data-header` if the data is not in the first row of the `data_worksheet`.
+
+Multi mode allows one or more `output_files` based on information defined in the `format_worksheet`. This mode still requires the same information as single mode but it is stored within a worksheet in the `input_file`.
 
 ## Manual
 
@@ -30,7 +41,10 @@ A general overview of how Laundry operates is:
 
 The `input_file` is the spreadsheet that contains the data to be formatted and exported to the `output_file`.
 
-The `input_file` __must__ contain a worksheet that contains the structure or output formatting requirements of the output file: this is the `structure_worksheet`.
+The `input_file` __must__ contain worksheets that contain:
+ 
+* The structure or output formatting requirements of the output file: this is the `structure_worksheet`.
+* When the `multi` sub-command a `format_worksheet` is required to allow the batch operation to take place.
 
 The `input_file`'s data is stored in the `data_worksheet`. This worksheet can be given any name provided it doesn't clash with the `structure_worksheet` name.
 
@@ -89,6 +103,8 @@ Each of the `sectiontypes` have some limit regarding their operation.
 
 ## Arranging Spreadsheet Data
 
+The following applies to the both `sinlge` and `multi` subcommands.
+
 ### `data_worksheet`
 
 The `data_worksheet` contains the data that will be formatted into the `output_file`.
@@ -97,9 +113,11 @@ The `data_worksheet` contains the data that will be formatted into the `output_f
     
     * When using `single` sub-command the `--data-head` option must to be used, *and* the row number specified.  For example if the column headers start on row 5:
 
-    `Laundry single -df=5 -t <template-file> <input-file> <output-file>`
+    `laundry single -df=5 -t <template-file> <input-file> <output-file>`
     
-    *  When using `multi` mode the row must be recorded in the `header row` column.,
+    *  When using `multi` mode the row must be recorded in the `header row` column.
+    
+    `laundry multi -f <format-worksheet> <input-file>`
 
 2. Do not use numbers for column header names. This will cause problems.
 
@@ -126,8 +144,41 @@ The `data_worksheet` contains the data that will be formatted into the `output_f
 
 5. `sectionbreak` and `pagebreak` must be `TRUE` or `FALSE`.
 
-### `format_worksheet`
+### `batch_worksheet`
 
+The `batch_worksheet` defines the requirements for each of the output files. The spreadsheet will require a row for each file that is to be output.
+
+#### `data_worksheet` requirements
+
+This is the name of the `data_worksheet` that contains the data to be exported as described above. 
+
+#### `structure_worksheet` requirements
+
+The`structure_worksheet`defines how the output file will be structured. This is the same as described above.
+
+#### `header_row` requirements
+
+The number of the row that defines the header row in the `data_worksheet`. This functionally identical to the `-dh` flag used with the `single` sub-command as described above.
+
+#### `remove_columns` requirements
+
+Not currently used.
+
+#### `drop_empty_columns` requirements
+
+Not currently used.
+
+#### `template_file` requirements
+
+The name of the `.docx`file being used as the template for the output file. Different template files can be used provided that the are all stored in the directory that the `laundry` command is run from.
+
+#### `filter_rows`
+
+Not currently used.
+
+#### `output_file`
+
+The name of the file that is produced by the app. The file will be saved in the directory that the app is run from. The file name can be a relative or absolute file path.
 
 ## FAQs
 
@@ -135,7 +186,7 @@ The following is a list of commonly experienced issues.
 
 ### I get something containing `KeyError` and what looks like a column header
 
-The likely culprit is an incorrectly spealt column header in the `structure_worksheet` or you haven't allowed for the conversion of underscores (`_`) replacing spaces within the column headers.
+The likely culprit is an incorrectly spelt column header in the `structure_worksheet` or you haven't allowed for the conversion of underscores (`_`) replacing spaces within the column headers.
 
 
 ### Something like `No sheet named <[some_worksheet_name]>`
@@ -166,13 +217,3 @@ The Word formatting style is not present in the `template_file`. Check that the 
 
 Due to limitations with Word user specific styles need to be saved to  the `template_file` for them to be available. If the specified name is not present in the `template_file` then the app will not function.
 
-## `multi`
-
-worksheet -> addressed
-structure_worksheet -> addressed
-header_row
-remove_columns
-drop_empty_columns
-template_file -> addressed
-filter_rows
-output_file
