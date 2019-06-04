@@ -277,15 +277,16 @@ def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_
 
 
 @click.group()
+@click.version_option(laundry_version)
 def cli():
     """
-    This is the command line interface(CLI) for the Laundry app (2019.0.5).
+    This is the command line interface(CLI) for the Laundry app.
     For details regarding the operation of the app type `laundry --help`.
     """
     pass
 
+
 @cli.command()
-# Todo: add to changelog 2019.0.5
 @click.option('--data-worksheet', '-dw', 'data',
               default='Master List',
               help='Name of the worksheet containing the data to be converted into a '
