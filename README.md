@@ -7,7 +7,7 @@ Laundry provides two modes in which to generate the Word files:
 * Single file mode, where details of a single output file are defined and passed at the CLI, and
 * Multi file mode. where multiple output files can be defined and batched from a worksheet within the orignal Excel spreadheet.
 
-While spreadsheets are, in manner aspects, similar to database tables, Laundry is only a formatting tool and not a database.
+While spreadsheets are, in many aspects, similar to database tables, Laundry is only a formatting tool and not a database.
 
 ### Overview
 
@@ -63,9 +63,7 @@ This defines the type of section that will be inserted with the output document.
 
 - `heading`: Will use the data contained within the cell as a section heading made up of a title (column heading) and a paragraph (cell contents).
 
-- `photo`: Inserts one or more photos (images) into the paragraph. Multiple images can be added by including them in the `sectioncontains` column. The `photo` column heading is used to provide a file path to the directory containing the files.
-    
-    - _New in 2019.0.4_: Including the photo's file extension is not required. The app will sequence through a number of popular formats before providing an error message to the standard output and adding the error message to the output document.
+- `photo`: Inserts one or more photos (images) into the paragraph. Multiple images can be added by including them in the `sectioncontains` column. The `photo` column heading is used to provide a file path to the directory containing the files. Including the photo's file extension is not required. The app will sequence through a number of popular formats before providing an error message to the standard output and adding the error message to the output document.
 
 #### `sectioncontains`
 This contains one or more of the column names used in the `data` worksheet. Multiple column names can be used with `table` using  `sectiontypes` provided the are separated by `new lines` (alt + enter) in the cell, or commas.  `new lines` are the preferred method.
@@ -212,6 +210,8 @@ For each row of your `data_worksheet` that contains some data the app will produ
 ### `KeyError: "no style with name '[some_Word_style]'"`
 
 The Word formatting style is not present in the `template_file`. Check that the style name matches exactly its name in Word.
+
+Some Word styles appear to be concatenations of other styles within Word, e.g. 'Heading 3, List'. These styles don't work as expected and the reason for this has not been determined.
 
 ### How do I use a specific Word style?
 
