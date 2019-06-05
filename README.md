@@ -23,7 +23,10 @@ A general overview of how Laundry operates is:
 
 5. If a batch process is desired a `batch_worksheet` will be required to define the above requirements.
 
-6. The app is run using the command line interface (CLI).
+6. The app is run using the command line interface (CLI). This is as easy as:
+
+    - `laundry single -t <template_file> <input_file> <output_file>`, or
+    - `laundry multi <input_file>`
 
 ## Running the App
 
