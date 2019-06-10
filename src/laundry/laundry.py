@@ -3,10 +3,10 @@ from docx.shared import Inches
 import pandas as pd
 import janitor
 from pathlib import Path, PurePath
-from typing import List, Iterable, Dict, Tuple, Any, NewType
+from typing import List, Iterable, Dict, Tuple, Any, NewType, Iterator
 import click
 
-laundry_version = '2019.0.5'
+laundry_version = '2019.0.6'
 
 data_frame = NewType('data_frame', pd.DataFrame)
 
@@ -152,7 +152,6 @@ def insert_photo(document: object, photo: str, width: int = 4):
             return True
     print('\nPhoto {} does not exist. Check file extension.'.format(photo))
     document.add_paragraph('PHOTO "{}" NOT FOUND\n'.format(str(photo).upper()))
-
 
 
 def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: str):
@@ -376,6 +375,8 @@ def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_
         data_file = clean_xlsx_table(file_input, sheet=wkst_data, head=data_head,
                                      clean_hdr=True, drop_empty=True
                                      )
+        # Delete the lines below testing only
+        data_file = filter_rows(data_file, [('holcim_risk', ('High', 'Medium'))])
         single_load(structure_file.to_dict('records'), data_file.to_dict('records'),
                     file_template, path_input_f, file_output)
     else:
@@ -442,3 +443,30 @@ def sort_colours(load: Dict, check_load, file_input, path_input_f):
                               )
         single_load(sf.to_dict('records'), df.to_dict('records'),
                     Document(row['template_file']), path_input_f, str(row['output_file']))
+
+def check_headers():
+    """
+    Check the headers in the _data_worksheet against those defined in _structure_worksheet.
+    Do not process the file if the headers do not match.
+    :return:
+    """
+    pass
+
+
+def filter_rows(df: data_frame, filter_list: List[Tuple[str, Iterator[str]]]) -> data_frame:
+    """
+    Takes a dataframe and returns another dataframe that only contains rows that meet filter_list.
+    Do not the output the rows that meet certain conditions.
+    Only can be selected in the _batch worksheet
+    Takes the form <column_header>:<value>
+    - Multiple columns can be added
+    - Multiple values for a given column can be provided
+    - Conditional filtering is not provided -> if a column header and value is provided then the row will be filtered.
+    :return:
+    :param df: the dataframe to be filtered.
+    :param filter_list: made up of <coloumn>, (<row_value1>, ..., <row_valueN>).
+    :return:
+    """
+    for cln in filter_list:
+        df = df.loc[df[cln[0]].isin(cln[1])]
+    return df
