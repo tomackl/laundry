@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='laundry',
-    version='2019.0.5',
+    version='2019.0.6', # Move this to setup.cfg so that the version number can be read from there.
     author='Tom Ackland',
     author_email='ackland.thomas@gmail.com',
     url='https://github.com/tomackl/laundry',
