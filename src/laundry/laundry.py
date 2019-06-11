@@ -488,9 +488,13 @@ def filter_setup(filters: str) -> List[List[str]]:
         i.append(filters)
     for each in i:
         col, b = each.split(':')
-        col_kw = []
-        x = b.split(',')
-        for y in x:
-            col_kw.append(y.strip())
+        col_kw = strip_list_whitespace(b.split(','))
         filtered_list.append((col, col_kw))
     return filtered_list
+
+
+def strip_list_whitespace(wht_spc: List) -> List:
+    i = []
+    for each in wht_spc:
+        i.append(each.strip())
+    return i
