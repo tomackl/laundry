@@ -19,7 +19,6 @@ def test_remove_underscore():
 
 
 def test_section_contains():
-    # todo: This test should be parametarised
     test = laundry.section_contains('1234\n5678')
     expected =['1234', '5678']
     assert test == expected
@@ -64,5 +63,16 @@ def test_insert_photo():
 def test_structure_docs():
     pass
 
+
 def test_confirm_path():
     pass
+
+
+@pytest.mark.parametrize('filters,expected', [
+    (('test_risk:high,medium'), [('test_risk', ['high', 'medium'])]),
+    (('test_risk: high, medium'), [('test_risk', ['high', 'medium'])])
+])
+def test_filter_setup(filters, expected):
+    expected = expected
+    result = laundry.filter_setup(filters)
+    assert expected == result
