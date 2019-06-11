@@ -73,9 +73,9 @@ def section_contains(sect_contains: Any) -> List[str]:
     elif ',' in sect_contains:
         return list(str(sect_contains).split(','))
     else:
-        _ = list()
-        _.append(sect_contains)
-        return _
+        i = list()
+        i.append(sect_contains)
+        return i
 
 
 def insert_paragraph(document: object, text: str, title: str = None,
@@ -376,7 +376,9 @@ def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_
                                      clean_hdr=True, drop_empty=True
                                      )
         # Delete the lines below testing only
-        data_file = filter_rows(data_file, [('holcim_risk', ('High', 'Medium'))])
+        filter = filter_setup('holcim_risk:High,Medium')
+        data_file = filter_rows(data_file, filter)
+        # Delete lines above
         single_load(structure_file.to_dict('records'), data_file.to_dict('records'),
                     file_template, path_input_f, file_output)
     else:
@@ -458,15 +460,37 @@ def filter_rows(df: data_frame, filter_list: List[Tuple[str, Iterator[str]]]) ->
     Takes a dataframe and returns another dataframe that only contains rows that meet filter_list.
     Do not the output the rows that meet certain conditions.
     Only can be selected in the _batch worksheet
-    Takes the form <column_header>:<value>
+    Takes the form <column_header>:<value1>, <value2>, ..., <valueN>
     - Multiple columns can be added
     - Multiple values for a given column can be provided
     - Conditional filtering is not provided -> if a column header and value is provided then the row will be filtered.
     :return:
     :param df: the dataframe to be filtered.
-    :param filter_list: made up of <coloumn>, (<row_value1>, ..., <row_valueN>).
+    :param filter_list: made up of <column>, (<row_value1>, ..., <row_valueN>).
     :return:
     """
-    for cln in filter_list:
-        df = df.loc[df[cln[0]].isin(cln[1])]
+    for col in filter_list:
+        df = df.loc[df[col[0]].isin(col[1])]
     return df
+
+
+def filter_setup(filters: str) -> List[List[str]]:
+    """
+    Split the content of the passed tuple into the correct parts
+    :return:
+    """
+    filtered_list = []
+    i = []
+    if '\n' in filters:
+        i = str(filters).splitlines()
+    # if no new lines assume a straight string
+    else:
+        i.append(filters)
+    for each in i:
+        col, b = each.split(':')
+        col_kw = []
+        x = b.split(',')
+        for y in x:
+            col_kw.append(y.strip())
+        filtered_list.append((col, col_kw))
+    return filtered_list
