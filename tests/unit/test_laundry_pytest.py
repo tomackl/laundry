@@ -76,3 +76,7 @@ def test_filter_setup(filters, expected):
     expected = expected
     result = laundry.filter_setup(filters)
     assert expected == result
+
+
+def test_strip_list_whitespace():
+    pass
