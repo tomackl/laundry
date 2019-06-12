@@ -6,7 +6,7 @@ from pathlib import Path, PurePath
 from typing import List, Iterable, Dict, Tuple, Any, NewType, Iterator
 import click
 
-laundry_version = '2019.0.6'
+laundry_version = '2019.0.6b'
 
 data_frame = NewType('data_frame', pd.DataFrame)
 
