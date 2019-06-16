@@ -375,10 +375,6 @@ def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_
         data_file = clean_xlsx_table(file_input, sheet=wkst_data, head=data_head,
                                      clean_hdr=True, drop_empty=True
                                      )
-        # Delete the lines below testing only
-        filter = filter_setup('holcim_risk:High,Medium')
-        data_file = filter_rows(data_file, filter)
-        # Delete lines above
         single_load(structure_file.to_dict('records'), data_file.to_dict('records'),
                     file_template, path_input_f, file_output)
     else:
@@ -443,8 +439,14 @@ def sort_colours(load: Dict, check_load, file_input, path_input_f):
                               clean_hdr=True,
                               drop_empty=True
                               )
+
+        if pd.notna(row['filter_rows']):
+            filter_list = filter_setup(row['filter_rows'])
+            df = filter_rows(df, filter_list)
+
         single_load(sf.to_dict('records'), df.to_dict('records'),
                     Document(row['template_file']), path_input_f, str(row['output_file']))
+
 
 def check_headers():
     """
@@ -455,7 +457,7 @@ def check_headers():
     pass
 
 
-def filter_rows(df: data_frame, filter_list: List[Tuple[str, Iterator[str]]]) -> data_frame:
+def filter_rows(df: data_frame, filter_list: List[List[str]]) -> data_frame:
     """
     Takes a dataframe and returns another dataframe that only contains rows that meet filter_list.
     Do not the output the rows that meet certain conditions.
