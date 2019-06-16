@@ -175,7 +175,13 @@ The name of the `.docx`file being used as the template for the output file. Diff
 
 #### `filter_rows`
 
-Not currently used.
+This allows rows to be filtered from the output file by only including the rows that meet the criteria defined in the filter. More than one row can be specified to filter by.
+
+The row requires a particular format `<row_heading>:<criteria1,...,criteriaN>`. The heading row must be separated from the filter criteria by a colon (`:`). The filters criteria *must* be separated by commas (`,`), and each row must be separated by a newline (`alt-enter` in Excel).
+
+The filter criteria must be _identical_ to the cell values. If the criteria can take different forms, that either:
+- All forms must be included in the filter, or
+- Correct all the values so that they take common form (probably the better option). 
 
 #### `output_file`
 
