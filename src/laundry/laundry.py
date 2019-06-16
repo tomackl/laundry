@@ -441,8 +441,7 @@ def sort_colours(load: Dict, check_load, file_input, path_input_f):
                               )
 
         if pd.notna(row['filter_rows']):
-            filter_list = filter_setup(row['filter_rows'])
-            df = filter_rows(df, filter_list)
+            df = filter_rows(df, filter_setup(row['filter_rows']))
 
         single_load(sf.to_dict('records'), df.to_dict('records'),
                     Document(row['template_file']), path_input_f, str(row['output_file']))
