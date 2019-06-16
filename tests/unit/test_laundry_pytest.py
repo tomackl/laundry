@@ -18,10 +18,13 @@ def test_remove_underscore():
     assert test == expected
 
 
-def test_section_contains():
-    test = laundry.section_contains('1234\n5678')
-    expected =['1234', '5678']
-    assert test == expected
+@pytest.mark.parametrize('sect_contains,expected', [
+    ('1234\n5678', ['1234', '5678'])
+])
+def test_section_contains(sect_contains, expected):
+    expected = expected
+    result = laundry.section_contains('1234\n5678')
+    assert result == expected
 
 
 @pytest.mark.parametrize('record,header,format_title,expected',
@@ -69,8 +72,8 @@ def test_confirm_path():
 
 
 @pytest.mark.parametrize('filters,expected', [
-    (('test_risk:high,medium'), [('test_risk', ['high', 'medium'])]),
-    (('test_risk: high, medium'), [('test_risk', ['high', 'medium'])])
+    ('test_risk:high,medium', [('test_risk', ['high', 'medium'])]),
+    ('test_risk: high, medium', [('test_risk', ['high', 'medium'])])
 ])
 def test_filter_setup(filters, expected):
     expected = expected
@@ -78,5 +81,13 @@ def test_filter_setup(filters, expected):
     assert expected == result
 
 
-def test_strip_list_whitespace():
-    pass
+@pytest.mark.parametrize('wht_spc,expected', [
+    ([' abcde'], ['abcde']),
+    (['abcde '], ['abcde']),
+    ([' abcde '], ['abcde']),
+    ([' 12345 ', ' xyz '], ['12345', 'xyz'])
+])
+def test_strip_list_whitespace(wht_spc, expected):
+    expected = expected
+    result = laundry.strip_list_whitespace(wht_spc)
+    assert expected == result
