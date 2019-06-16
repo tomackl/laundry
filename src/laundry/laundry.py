@@ -334,9 +334,11 @@ def single(input_file, output_file, data, structure, template, data_head):
 
 @cli.command()
 @click.option('--batch-worksheet', '-b', 'batch',
-              help='Name of the worksheet containing the format data. This worksheet'
-                   ' defines the structure and data worksheets and other higher level '
-                   'formatting details.')
+              default='_batch',
+              help='Name of the worksheet containing the format data. This '
+                   'worksheet defines the structure and data worksheets and '
+                   'other higher level formatting details. The default batch '
+                   'worksheet name is "_batch".')
 @click.argument('input_file',
                 type=click.Path(exists=True)
                 )
