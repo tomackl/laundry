@@ -5,8 +5,9 @@ import janitor
 from pathlib import Path, PurePath
 from typing import List, Iterable, Dict, Tuple, Any, NewType, Iterator
 import click
+from functools import lru_cache
 
-laundry_version = '2019.0.6'
+laundry_version = '2019.0.7b'
 
 data_frame = NewType('data_frame', pd.DataFrame)
 
@@ -351,6 +352,7 @@ def multi(input_file, batch):
     wash_multi(file_input, wksht_batch)
 
 
+# @lru_cache(maxsize=128)
 def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_head):
     """
     This function acts as a common calling point for the module to allow the module to be run from the command line
