@@ -11,6 +11,7 @@ laundry_version = '2019.0.7b'
 data_frame = NewType('data_frame', pd.DataFrame)
 invalid = ['nan', 'None', 'NA', 'N/A', 'False', 'Nil']
 
+
 def clean_xlsx_table(file_path: str, sheet: str, head: int = 0,
                      rm_column: List[str] = None, clean_hdr: bool = False,
                      drop_empty: bool = False) -> data_frame:
@@ -121,12 +122,6 @@ def insert_table(document: object, cols: int, rows: int,
         table.autofit = True
     data = enumerate(data, 0)
     for i, cell_contents in data:
-        # print(f"\n{i} {table_hdr_req}")
-        # if (i == 0) and (table_hdr_req is False):
-        #     print("added first row")
-        #     break
-        # else:
-        #     insert_row(table.rows[i].cells, cell_contents)
         insert_row(table.rows[i].cells, cell_contents)
 
 
@@ -276,7 +271,7 @@ def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_
     """
     for each in structure_dict:
         x = str(each['path'])
-        if x not in invalid:  #!= 'nan':
+        if x not in invalid:
             if Path(x).exists() is False:
                 print(f"Path '{x}' is referenced in the worksheet but cannot be found. Please check that the path exists.")
                 return False
@@ -385,7 +380,6 @@ def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_
     path_input_f = file_input.parents[0]
 
     check_load = pd.ExcelFile(file_input).sheet_names
-    # print(f"{check_load}")
 
     if worksheet_present(check_load, [wkst_struct, wkst_data]):
         structure_file = clean_xlsx_table(file_input, sheet=wkst_struct, head=0,
@@ -440,11 +434,9 @@ def sort_colours(load: Dict, check_load, file_input, path_input_f):
             print('Check that worksheets {} and {} present in spreadsheet.'
                   .format(row['structure_worksheet'], row['worksheet']))
             break
-
         elif not confirm_path_file([row['template_file']]):
             print('Template file "{}" could not be found.'.format(row['template_file']))
             break
-
         sf = clean_xlsx_table(file_input,
                               row['structure_worksheet'],
                               head=0,
@@ -458,21 +450,10 @@ def sort_colours(load: Dict, check_load, file_input, path_input_f):
                               clean_hdr=True,
                               drop_empty=True
                               )
-
         if pd.notna(row['filter_rows']):
             df = filter_rows(df, filter_setup(row['filter_rows']))
-
         single_load(sf.to_dict('records'), df.to_dict('records'),
                     Document(row['template_file']), path_input_f, str(row['output_file']))
-
-
-def check_headers():
-    """
-    Check the headers in the _data_worksheet against those defined in _structure_worksheet.
-    Do not process the file if the headers do not match.
-    :return:
-    """
-    pass
 
 
 def filter_rows(df: data_frame, filter_list: List[List[str]]) -> data_frame:
@@ -503,7 +484,6 @@ def filter_setup(filters: str) -> List[List[str]]:
     i = []
     if '\n' in filters:
         i = str(filters).splitlines()
-    # if no new lines assume a straight string
     else:
         i.append(filters)
     for each in i:
