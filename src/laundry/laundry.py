@@ -9,7 +9,7 @@ import click
 laundry_version = '2019.0.7b'
 
 data_frame = NewType('data_frame', pd.DataFrame)
-
+invalid = ['nan', 'None', 'NA', 'N/A', 'False', 'Nil']
 
 def clean_xlsx_table(file_path: str, sheet: str, head: int = 0,
                      rm_column: List[str] = None, clean_hdr: bool = False,
@@ -106,6 +106,7 @@ def insert_table(document: object, cols: int, rows: int,
     """
     The function takes data and uses it to create a table for the template_doc.
     The first row of data is assumed to be the table header.
+    20190814 'add_table_hdr added to allow the table header to be dropped from the table if not required.
     :param document: the docx file the table will be added to.
     :param rows: the number of required table rows.
     :param cols: the number of required table columns.
@@ -120,6 +121,12 @@ def insert_table(document: object, cols: int, rows: int,
         table.autofit = True
     data = enumerate(data, 0)
     for i, cell_contents in data:
+        # print(f"\n{i} {table_hdr_req}")
+        # if (i == 0) and (table_hdr_req is False):
+        #     print("added first row")
+        #     break
+        # else:
+        #     insert_row(table.rows[i].cells, cell_contents)
         insert_row(table.rows[i].cells, cell_contents)
 
 
@@ -178,8 +185,11 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
         elif str(element['sectiontype']).lower() == 'table':
             table = section_contains(element_sect_con)
             data = extract_data(rowdict, table)
-            insert_table(outputfile, len(table), len(data),
-                         data, section_style=element['sectionstyle']
+            insert_table(outputfile,
+                         len(table),
+                         len(data),
+                         data,
+                         section_style=element['sectionstyle'],
                          )
 
         elif str(element['sectiontype']).lower() == 'photo':
@@ -264,6 +274,12 @@ def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_
     :param path_input_f: path to the current working directy.
     :param file_output: output file name.
     """
+    for each in structure_dict:
+        x = str(each['path'])
+        if x not in invalid:  #!= 'nan':
+            if Path(x).exists() is False:
+                print(f"Path '{x}' is referenced in the worksheet but cannot be found. Please check that the path exists.")
+                return False
     with click.progressbar(iterable=data_dict,
                            label='Conversion progress:',
                            fill_char='|',
@@ -369,6 +385,7 @@ def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_
     path_input_f = file_input.parents[0]
 
     check_load = pd.ExcelFile(file_input).sheet_names
+    # print(f"{check_load}")
 
     if worksheet_present(check_load, [wkst_struct, wkst_data]):
         structure_file = clean_xlsx_table(file_input, sheet=wkst_struct, head=0,
