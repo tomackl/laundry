@@ -1,3 +1,20 @@
+2019.0.7
+========
+
+Features
+--------
+
+* Added a check to ensure that any referenced directorys are checked to exist before proceeding.
+
+Bug Fixes
+---------
+
+Other
+-----
+
+Deprecations
+------------
+
 2019.0.5
 ========
 
