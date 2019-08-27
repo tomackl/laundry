@@ -6,7 +6,7 @@ from pathlib import Path, PurePath
 from typing import List, Iterable, Dict, Tuple, Any, NewType, Iterator
 import click
 
-laundry_version = '2019.0.7b'
+laundry_version = '2019.0.7'
 
 data_frame = NewType('data_frame', pd.DataFrame)
 invalid = ['nan', 'None', 'NA', 'N/A', 'False', 'Nil']
