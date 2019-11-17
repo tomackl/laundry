@@ -1,11 +1,11 @@
 # Laundry: Folding spreadsheets into neat shapes
 
-Spreadsheets are easy to record and manipulate data with but do a poor job of displaying the data in an easy to read way. Laundry provides a simple way of converting spread data into Word files by by specifying the output document's format within the spreadsheet itself.
+Spreadsheets are easy to record and manipulate data with but do a poor job of displaying the data in an easy to read way. Laundry provides a simple way of converting spreadsheet data into Word files by by specifying the output document's format within the spreadsheet itself.
 
 Laundry provides two modes in which to generate the Word files:
 
 * Single file mode, where details of a single output file are defined and passed at the CLI, and
-* Multi file mode. where multiple output files can be defined and batched from a worksheet within the orignal Excel spreadheet.
+* Multi file mode. where multiple output files can be defined and batched from a worksheet within the original Excel spreadsheet.
 
 While spreadsheets are, in many aspects, similar to database tables, Laundry is only a formatting tool and not a database.
 
