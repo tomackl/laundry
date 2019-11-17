@@ -152,8 +152,8 @@ def insert_photo(document: object, photo: str, width: int = 4):
         if photo_path.exists():
             document.add_picture(str(photo_path), width=Inches(width))
             return True
-    print('\nPhoto {} does not exist. Check file extension.'.format(photo))
-    document.add_paragraph('PHOTO "{}" NOT FOUND\n'.format(str(photo).upper()))
+    print(f'Photo {photo.lower()} does not exist. Check file extension.')
+    document.add_paragraph(f'PHOTO "{str(photo).upper()}" NOT FOUND\n')
 
 
 def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: str):
@@ -169,33 +169,30 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
     file_path = file_path
     # todo: add error checking here.
     for element in structdict:
-        element_section_contains = str(element['sectioncontains']).lower()
+        element_sect_con = str(element['sectioncontains']).lower()
         if str(element['sectiontype']).lower() in ('heading', 'para', 'paragraph'):
-            insert_paragraph(outputfile, element_section_contains,
-                             title=element_section_contains.title(),
+            insert_paragraph(outputfile, str(rowdict[str(element_sect_con).lower()]),
+                             title=element_sect_con.title(),
                              section_style=element['sectionstyle'],
                              title_style=element['titlestyle']
                              )
 
         elif str(element['sectiontype']).lower() == 'table':
-            table = section_contains(element_section_contains)
+            table = section_contains(element_sect_con)
             data = extract_data(rowdict, table)
-            insert_table(outputfile,
-                         len(table),
-                         len(data),
-                         data,
-                         section_style=element['sectionstyle'],
+            insert_table(outputfile, len(table), len(data),
+                         data, section_style=element['sectionstyle']
                          )
 
         elif str(element['sectiontype']).lower() == 'photo':
-            photo = section_contains(rowdict[element_section_contains])
+            sect_contains = rowdict[element_sect_con]
             q = confirm_path_directory([file_path, element['path']])
-            if q is False:
-                raise FileNotFoundError('The photo path is not a directory or does not exist.')
-            for each in photo:
-                if str(each).lower not in ['no photo', 'none', 'nan', '-']:
+            if str(sect_contains).lower() not in ['no photo', 'none', 'nan', '-']:
+                photo = section_contains(sect_contains)
+                for each in photo:
                     loc = q.joinpath(each)
                     insert_photo(outputfile, str(loc), 4)
+
         else:
             print('Valid section header was not found.')
 
@@ -240,7 +237,8 @@ def confirm_path_file(filepath: List[str]) -> bool:
     for each in filepath:
         q = PurePath(each.replace('\\', '/').strip('/'))
         p = p / Path(q.as_posix())
-    return Path(p).exists()
+    p = Path(p)
+    return p.exists()
 
 
 def worksheet_present(sheet_names: List[str], sheets: List[str]) -> bool:
@@ -274,14 +272,22 @@ def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_
     :param path_input_f: path to the current working directory.
     :param file_output: output file name.
     """
+    output_file = file_output
     for each in structure_dict:
-        x = str(each['path'])
-        if x not in invalid:
-            p = Path(str(Path.cwd()) + '/' + x)
+        # 1. Todo: Check that the input file exists.
+        file_path = str(each['path'])
+        if file_path not in invalid:
+        #     if confirm_path(input_file) is not True:
+        #         return False
+        # if output_file not in invalid:
+        #     if confirm_path(output_file, file_exists=False) is not True:
+        #         return False
+            p = Path(str(Path.cwd()) + '/' + file_path)
             if p.exists() is False:
-                print(f"Path '{x}' is referenced in the worksheet but cannot be found. "
+                print(f"Path '{file_path}' is referenced in the worksheet but cannot be found. "
                       f"Please check that the path exists.")
                 return False
+    # 2. Todo: Check that the output file exists.
     with click.progressbar(iterable=data_dict,
                            label='Conversion progress:',
                            fill_char='|',
@@ -293,9 +299,30 @@ def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_
         file_template.save(file_output)
     except FileNotFoundError as e:
         p = Path(file_output)
-        print(f'{e}:\nCheck that output directory "{p.resolve().parent}" exists. Check your spelling. ;)')
+        print(f'{e}:\nCheck that output directory "{p.resolve().parent}" exists.')
+        print(f'Check your spelling. ;)')
     except Exception as e:
         print(f'{e}')
+
+
+# def confirm_path(file_path: str, rel_path=True) -> bool:
+#     """
+#     The function returns True if the path exists and false if doesn't. The function assumes that the paths are relavtive
+#     and resolves from CWD.
+#     :param file_path:
+#     :return:
+#     """
+#     p = Path(file_path)
+#     print(p)
+#     # p = Path(str(Path.cwd()) + '/' + file_path)
+#     if rel_path is True and p.exists() is True:
+#     # if p.exists() is True:
+#         return True
+#     if rel_path is False and p.parent.exists() is True:
+#         return True
+#     else:
+#         print(f"Path '{file_path}' is referenced in the worksheet but cannot be found.")
+#         return False
 
 
 @click.group()
@@ -374,14 +401,14 @@ def multi(input_file, batch):
     wash_multi(file_input, wksht_batch)
 
 
-def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_head):
+def wash_single(file_input, file_output, wksht_data, wksht_struct, template, data_head):
     """
     This function acts as a common calling point for the module to allow the module to be run from the command line
     interface (cli) or from another script.
     :param file_input: the .xls file containing the data to be converted.
     :param file_output: name of the output file.
-    :param wkst_data: name of the .xls worksheet containing the data to be processed
-    :param wkst_struct: name of the .xls worksheet detailing how the data shall be processed
+    :param wksht_data: name of the .xls worksheet containing the data to be processed
+    :param wksht_struct: name of the .xls worksheet detailing how the data shall be processed
     :param template: the .docx file to be used as the template
     :param data_head: the number of the data worksheet's row containing the column headers.
     """
@@ -391,18 +418,18 @@ def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_
     # todo: add exceptions to catch files that are missing file extensions.
     path_input_f = file_input.parents[0]
     check_load = pd.ExcelFile(file_input).sheet_names
-    print(check_load)
-    if worksheet_present(check_load, [wkst_struct, wkst_data]):
-        structure_file = clean_xlsx_table(file_input, sheet=wkst_struct, head=0,
+    if worksheet_present(check_load, [wksht_struct, wksht_data]):
+        structure_file = clean_xlsx_table(file_input, sheet=wksht_struct, head=0,
                                           clean_hdr=True, drop_empty=False
                                           )
-        data_file = clean_xlsx_table(file_input, sheet=wkst_data, head=data_head,
+        data_file = clean_xlsx_table(file_input, sheet=wksht_data, head=data_head,
                                      clean_hdr=True, drop_empty=True
                                      )
         single_load(structure_file.to_dict('records'), data_file.to_dict('records'),
                     file_template, path_input_f, file_output)
     else:
-        print(f'Valid data not found. {check_load}')
+        no_valid_data('Valid worksheets were not found.', [wksht_struct, wksht_data],
+                      'Required worksheets', check_load, 'Found worksheets')
 
 
 def wash_multi(file_input, wksht_batch):
@@ -426,7 +453,23 @@ def wash_multi(file_input, wksht_batch):
         sort_colours(format_file.to_dict('records'), check_load, file_input, path_input_f)
 
     else:
-        print('Valid data not found.')
+        no_valid_data('Valid worksheets were not found.', wksht_batch,
+                      'Required worksheets', check_load, 'Found worksheets')
+
+
+def no_valid_data(descrip, req_data, req_title, actual_data, actual_title):
+    """
+    Output to the user the data that was required and what was provided.
+    :param descrip: Description of the no_valid_data
+    :param req_data: The data that was expected
+    :param req_title: What is te required data called?
+    :param actual_data: The data that was found
+    :param actual_title: What is the actual data called>?
+    :return:
+    """
+    print(f'{descrip}')
+    print(f'\t{req_title} -> {req_data}')
+    print(f'\t{actual_title} -> {actual_data}')
 
 
 def sort_colours(load: Dict, check_load, file_input, path_input_f):
@@ -442,11 +485,12 @@ def sort_colours(load: Dict, check_load, file_input, path_input_f):
 
     for row in load:
         if not worksheet_present(check_load, [row['structure_worksheet'], row['data_worksheet']]):
-            print('Check that worksheets {} and {} present in spreadsheet.'
-                  .format(row['structure_worksheet'], row['data_worksheet']))
+            no_valid_data('The following worksheet was missing.', row['structure_worksheet'],
+                          'Structure worksheet.', row['data_worksheet'], 'Data worksheet')
             break
         elif not confirm_path_file([row['template_file']]):
-            print('Template file "{}" could not be found.'.format(row['template_file']))
+            no_valid_data('Template file not found', row['template_file'], 'File path passed',
+                          Path(str(row['template_file'])).resolve(), 'Resolved template file path.')
             break
         sf = clean_xlsx_table(file_input,
                               row['structure_worksheet'],
@@ -493,14 +537,23 @@ def filter_setup(filters: str) -> List[List[str]]:
     """
     filtered_list = []
     i = []
-    if '\n' in filters:
-        i = str(filters).splitlines()
-    else:
-        i.append(filters)
+    try:
+        if '\n' in filters:
+            i = str(filters).splitlines()
+        else:
+            i.append(filters)
+    except TypeError as e:
+        print(f'The filter entered is: {filters}.\n')
+        print(f'Row filtering must take the following form:')
+        print(f'\t[ColumnHeader]:[CellContent] where:')
+        print(f'\t[ColumnHeader] is the column heading text in lower case with underscores ("_" replacing spaces (" ").')
+        print(f'\t[CellContent] is the text inside the cell that you want to find.')
+
     for each in i:
-        col, b = each.split(':')
-        col_kw = strip_list_whitespace(b.split(','))
-        filtered_list.append((col, col_kw))
+        column_hdr, filter_terms = each.split(':')
+        column_hdr = column_hdr.lower().replace(' ', '_')
+        filter_list = strip_list_whitespace(filter_terms.split(','))
+        filtered_list.append((column_hdr, filter_list))
     return filtered_list
 
 
