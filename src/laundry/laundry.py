@@ -390,9 +390,8 @@ def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_
     file_template = Document(template)
     # todo: add exceptions to catch files that are missing file extensions.
     path_input_f = file_input.parents[0]
-
     check_load = pd.ExcelFile(file_input).sheet_names
-
+    print(check_load)
     if worksheet_present(check_load, [wkst_struct, wkst_data]):
         structure_file = clean_xlsx_table(file_input, sheet=wkst_struct, head=0,
                                           clean_hdr=True, drop_empty=False
@@ -403,7 +402,7 @@ def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_
         single_load(structure_file.to_dict('records'), data_file.to_dict('records'),
                     file_template, path_input_f, file_output)
     else:
-        print('Valid data not found.')
+        print(f'Valid data not found. {check_load}')
 
 
 def wash_multi(file_input, wksht_batch):
@@ -444,7 +443,7 @@ def sort_colours(load: Dict, check_load, file_input, path_input_f):
     for row in load:
         if not worksheet_present(check_load, [row['structure_worksheet'], row['data_worksheet']]):
             print('Check that worksheets {} and {} present in spreadsheet.'
-                  .format(row['structure_worksheet'], row['worksheet']))
+                  .format(row['structure_worksheet'], row['data_worksheet']))
             break
         elif not confirm_path_file([row['template_file']]):
             print('Template file "{}" could not be found.'.format(row['template_file']))
