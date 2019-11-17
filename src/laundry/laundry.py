@@ -6,7 +6,7 @@ from pathlib import Path, PurePath
 from typing import List, Iterable, Dict, Tuple, Any, NewType, Iterator
 import click
 
-laundry_version = '2019.0.7'
+laundry_version = '2019.0.7b'
 
 data_frame = NewType('data_frame', pd.DataFrame)
 invalid = ['nan', 'None', 'NA', 'N/A', 'False', 'Nil']
@@ -169,16 +169,16 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
     file_path = file_path
     # todo: add error checking here.
     for element in structdict:
-        element_sect_con = str(element['sectioncontains']).lower()
+        element_section_contains = str(element['sectioncontains']).lower()
         if str(element['sectiontype']).lower() in ('heading', 'para', 'paragraph'):
-            insert_paragraph(outputfile, str(rowdict[str(element_sect_con).lower()]),
-                             title=element_sect_con.title(),
+            insert_paragraph(outputfile, element_section_contains,
+                             title=element_section_contains.title(),
                              section_style=element['sectionstyle'],
                              title_style=element['titlestyle']
                              )
 
         elif str(element['sectiontype']).lower() == 'table':
-            table = section_contains(element_sect_con)
+            table = section_contains(element_section_contains)
             data = extract_data(rowdict, table)
             insert_table(outputfile,
                          len(table),
@@ -188,11 +188,12 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
                          )
 
         elif str(element['sectiontype']).lower() == 'photo':
-            sect_contains = rowdict[element_sect_con]
+            photo = section_contains(rowdict[element_section_contains])
             q = confirm_path_directory([file_path, element['path']])
-            if str(sect_contains).lower() not in ['no photo', 'none', 'nan', '-']:
-                photo = section_contains(sect_contains)
-                for each in photo:
+            if q is False:
+                raise FileNotFoundError('The photo path is not a directory or does not exist.')
+            for each in photo:
+                if str(each).lower not in ['no photo', 'none', 'nan', '-']:
                     loc = q.joinpath(each)
                     insert_photo(outputfile, str(loc), 4)
         else:
@@ -215,12 +216,16 @@ def confirm_path_directory(filepath: List[str]) -> Path:
     filepath = filepath
     p = PurePath()
     for each in filepath:
-        q = PurePath(each.replace('\\', '/').strip('/'))
+        try:
+            q = PurePath(each.replace('\\', '/').strip('/'))
+        except Exception as e:
+            print(f'{e}:\nPath element "{each}" is not a valid path name.')
+            False
         p = p / Path(q.as_posix())
     r = Path(p)
     if r.is_dir():
         return r
-    return 'Incorrect path.'
+    return False
 
 
 def confirm_path_file(filepath: List[str]) -> bool:
@@ -266,14 +271,16 @@ def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_
     :param structure_dict: defines the structure of the output file
     :param data_dict: contains the data to be manipulated and exported in the output file.
     :param file_template: template document that will form the basis of the output file.
-    :param path_input_f: path to the current working directy.
+    :param path_input_f: path to the current working directory.
     :param file_output: output file name.
     """
     for each in structure_dict:
         x = str(each['path'])
         if x not in invalid:
-            if Path(x).exists() is False:
-                print(f"Path '{x}' is referenced in the worksheet but cannot be found. Please check that the path exists.")
+            p = Path(str(Path.cwd()) + '/' + x)
+            if p.exists() is False:
+                print(f"Path '{x}' is referenced in the worksheet but cannot be found. "
+                      f"Please check that the path exists.")
                 return False
     with click.progressbar(iterable=data_dict,
                            label='Conversion progress:',
@@ -282,8 +289,13 @@ def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_
                            ) as data_dictionary:
         for row in data_dictionary:
             format_docx(row, structure_dict, file_template, file_path=str(path_input_f))
-
-    file_template.save(file_output)
+    try:
+        file_template.save(file_output)
+    except FileNotFoundError as e:
+        p = Path(file_output)
+        print(f'{e}:\nCheck that output directory "{p.resolve().parent}" exists. Check your spelling. ;)')
+    except Exception as e:
+        print(f'{e}')
 
 
 @click.group()
