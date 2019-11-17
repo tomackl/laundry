@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='laundry',
-    version='2019.0.7b',
+    version='2019.0.7',
     author='Tom Ackland',
     author_email='ackland.thomas@gmail.com',
     url='https://github.com/tomackl/laundry',
