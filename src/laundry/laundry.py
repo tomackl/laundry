@@ -272,22 +272,6 @@ def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_
     :param path_input_f: path to the current working directory.
     :param file_output: output file name.
     """
-    output_file = file_output
-    for each in structure_dict:
-        # 1. Todo: Check that the input file exists.
-        file_path = str(each['path'])
-        if file_path not in invalid:
-        #     if confirm_path(input_file) is not True:
-        #         return False
-        # if output_file not in invalid:
-        #     if confirm_path(output_file, file_exists=False) is not True:
-        #         return False
-            p = Path(str(Path.cwd()) + '/' + file_path)
-            if p.exists() is False:
-                print(f"Path '{file_path}' is referenced in the worksheet but cannot be found. "
-                      f"Please check that the path exists.")
-                return False
-    # 2. Todo: Check that the output file exists.
     with click.progressbar(iterable=data_dict,
                            label='Conversion progress:',
                            fill_char='|',
