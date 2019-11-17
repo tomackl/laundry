@@ -6,6 +6,7 @@
 4. Allow multiple paths to be added to the structure file for multiply storage locations.
 5. Allow headers not to be applied to tables.
 6. Allow the template folder to stored somewhere other than the root directory.
-7.
+7. Simplify the path checking and standardise on path checking system.
+8. 
  
  

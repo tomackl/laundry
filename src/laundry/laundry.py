@@ -217,7 +217,7 @@ def confirm_path_directory(filepath: List[str]) -> Path:
             q = PurePath(each.replace('\\', '/').strip('/'))
         except Exception as e:
             print(f'{e}:\nPath element "{each}" is not a valid path name.')
-            False
+            # False
         p = p / Path(q.as_posix())
     r = Path(p)
     if r.is_dir():
