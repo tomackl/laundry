@@ -4,12 +4,14 @@ import pandas as pd
 import janitor
 from pathlib import Path, PurePath
 from typing import List, Iterable, Dict, Tuple, Any, NewType, Iterator
+from laundry.constants import data_frame, invalid, laundry_version
 import click
 
-laundry_version = '2019.0.7'
-
-data_frame = NewType('data_frame', pd.DataFrame)
-invalid = ['nan', 'None', 'NA', 'N/A', 'False', 'Nil']
+# The following constants have been moved to lanudry.constant
+# laundry_version = '2019.0.8'
+#
+# data_frame = NewType('data_frame', pd.DataFrame)
+# invalid = ['nan', 'None', 'NA', 'N/A', 'False', 'Nil']
 
 
 def clean_xlsx_table(file_path: str, sheet: str, head: int = 0,
@@ -59,10 +61,6 @@ def extract_data(record: Dict, header: List[str], format_title: bool = True
     return [tuple(hdr), tuple(data)]
 
 
-def remove_underscore(text: str) -> str:
-    return text.replace('_', ' ')
-
-
 def section_contains(sect_contains: Any) -> List[str]:
     """
     A function to split a string into a list. It will return a list.
@@ -85,8 +83,8 @@ def insert_paragraph(document: object, text: str, title: str = None,
     """
     This function defines the characteristics of a paragraph to be added to the document.
     :param document: the template_doc the paragraph will be added to.
-    :param text: paragraph text
-    :param title: title text
+    :param text: paragraph data_str
+    :param title: title data_str
     :param section_style: paragraph style
     :param title_style: title style. Use this _or_ title_level.
     :return:
@@ -130,7 +128,7 @@ def insert_row(row_cells, data: List[str]) -> Any:
     Populate a table row. The cells are passed as a row and the contents added.
     :param row_cells:
     :param data:
-    :param style: style is the text style to be applied to the individual rows.
+    :param style: style is the data_str style to be applied to the individual rows.
     :return:
     """
     for i, text in enumerate(data):
@@ -160,7 +158,7 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
     """
     The function is passed a dict (data_dict) containing the data to be formatted
     (structure) based on the template (outputfile).
-    :param rowdict: dictionary containing the text. It represents a single row from the spreadsheet.
+    :param rowdict: dictionary containing the data_str. It represents a single row from the spreadsheet.
     :param structdict: defines the output file's format structure.
     :param outputfile: The file which data will be inserted into.
     :param file_path: directory containing the spreadsheet
@@ -205,39 +203,6 @@ def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: 
             outputfile.add_page_break()
 
 
-def confirm_path_directory(filepath: List[str]) -> Path:
-    """
-    Convert the contents of the passed list into a Path. This function assumes
-    that the sum of the passed list will be a single path to a directory.
-    :param filepath: a list of path names as string
-    :return: Path
-    """
-    filepath = filepath
-    p = PurePath()
-    for each in filepath:
-        q = PurePath(each.replace('\\', '/').strip('/'))
-        p = p / Path(q.as_posix())
-    r = Path(p)
-    if r.is_dir():
-        return r
-    return 'Incorrect path.'
-
-
-def confirm_path_file(filepath: List[str]) -> bool:
-    """
-    Convert the contents of the passed list into a Path and if it points to a file
-    return True.
-    :param filepath:
-    :return:
-    """
-    filepath = filepath
-    p = PurePath()
-    for each in filepath:
-        q = PurePath(each.replace('\\', '/').strip('/'))
-        p = p / Path(q.as_posix())
-    return Path(p).exists()
-
-
 def worksheet_present(sheet_names: List[str], sheets: List[str]) -> bool:
     """
     Check whether the worksheets in sheets exist within the spreadsheet returning
@@ -266,100 +231,26 @@ def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_
     :param structure_dict: defines the structure of the output file
     :param data_dict: contains the data to be manipulated and exported in the output file.
     :param file_template: template document that will form the basis of the output file.
-    :param path_input_f: path to the current working directy.
+    :param path_input_f: path to the current working directory.
     :param file_output: output file name.
     """
     for each in structure_dict:
         x = str(each['path'])
         if x not in invalid:
             if Path(x).exists() is False:
-                print(f"Path '{x}' is referenced in the worksheet but cannot be found. Please check that the path exists.")
+                print(f"Path '{x}' is referenced in the worksheet but cannot be found. Please check that the path "
+                      f"exists.")
                 return False
     with click.progressbar(iterable=data_dict,
                            label='Conversion progress:',
                            fill_char='|',
                            empty_char='_'
                            ) as data_dictionary:
+        # ==> the line below
         for row in data_dictionary:
             format_docx(row, structure_dict, file_template, file_path=str(path_input_f))
 
     file_template.save(file_output)
-
-
-@click.group()
-@click.version_option(laundry_version)
-def cli():
-    """
-    This is the command line interface(CLI) for the Laundry app.
-    For details regarding the operation of the app type `laundry --help`.
-    """
-    pass
-
-
-@cli.command()
-@click.option('--data-worksheet', '-dw', 'data',
-              default='Master List',
-              help='Name of the worksheet containing the data to be converted into a '
-                   'word document. '
-                   'The default is "Master List".'
-              )
-@click.option('--template', '-t', 'template',
-              help='Name of the template file to be used used as the basis of the '
-                   'converted file.',
-              type=click.Path(exists=True)
-              )
-@click.option('--structure-worksheet', '-sw', '-s', 'structure',
-              default='_structure',
-              help='Name of the worksheet containing the data to format the structure '
-                   'of the outfile document. The default is "_structure".'
-              )
-@click.option('--data-header', '-dh', 'data_head',
-              default=0,
-              type=int,
-              help="The row number of the data worksheet's row containing the column "
-                   "headers. The default is 0."
-              )
-@click.argument('input_file',
-                type=click.Path(exists=True)
-                )
-@click.argument('output_file')
-def single(input_file, output_file, data, structure, template, data_head):
-    """
-    Run laundry on a single worksheet.
-
-    The relative path for each file should be provided with each of the options if non-default file names are provided.
-
-    NOTE: If output files are intended to be saved in a separate directory, that directory *must* exist otherwise the
-    output file will not save.
-
-    IMPORTANT: Laundry will overwrite, without prompting, any files with the same name in the directory where output
-    files are saved.
-    """
-    file_input = Path(input_file)
-    file_output = output_file
-    wkst_data = data
-    wkst_struct = structure
-    template = template
-    wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_head)
-
-
-@cli.command()
-@click.option('--batch-worksheet', '-b', 'batch',
-              default='_batch',
-              help='Name of the worksheet containing the format data. This '
-                   'worksheet defines the structure and data worksheets and '
-                   'other higher level formatting details. The default batch '
-                   'worksheet name is "_batch".')
-@click.argument('input_file',
-                type=click.Path(exists=True)
-                )
-def multi(input_file, batch):
-    """
-    Run Laundry on multiple worksheets.
-    """
-    file_input = Path(input_file)
-    wksht_batch = batch
-    wash_multi(file_input, wksht_batch)
 
 
 def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_head):
@@ -493,8 +384,126 @@ def filter_setup(filters: str) -> List[List[str]]:
     return filtered_list
 
 
+# ==> CLI Functions
+
+@click.group()
+@click.version_option(laundry_version)
+def cli():
+    """
+    This is the command line interface(CLI) for the Laundry app.
+    For details regarding the operation of the app type `laundry --help`.
+    """
+    pass
+
+
+@cli.command()
+@click.option('--data-worksheet', '-dw', 'data',
+              default='Master List',
+              help='Name of the worksheet containing the data to be converted into a '
+                   'word document. '
+                   'The default is "Master List".'
+              )
+@click.option('--template', '-t', 'template',
+              help='Name of the template file to be used used as the basis of the '
+                   'converted file.',
+              type=click.Path(exists=True)
+              )
+@click.option('--structure-worksheet', '-sw', '-s', 'structure',
+              default='_structure',
+              help='Name of the worksheet containing the data to format the structure '
+                   'of the outfile document. The default is "_structure".'
+              )
+@click.option('--data-header', '-dh', 'data_head',
+              default=0,
+              type=int,
+              help="The row number of the data worksheet's row containing the column "
+                   "headers. The default is 0."
+              )
+@click.argument('input_file',
+                type=click.Path(exists=True)
+                )
+@click.argument('output_file')
+def single(input_file, output_file, data, structure, template, data_head):
+    """
+    Run laundry on a single worksheet.
+
+    The relative path for each file should be provided with each of the options if non-default file names are provided.
+
+    NOTE: If output files are intended to be saved in a separate directory, that directory *must* exist otherwise the
+    output file will not save.
+
+    IMPORTANT: Laundry will overwrite, without prompting, any files with the same name in the directory where output
+    files are saved.
+    """
+    file_input = Path(input_file)
+    file_output = output_file
+    wkst_data = data
+    wkst_struct = structure
+    template = template
+    wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_head)
+
+
+@cli.command()
+@click.option('--batch-worksheet', '-b', 'batch',
+              default='_batch',
+              help='Name of the worksheet containing the format data. This '
+                   'worksheet defines the structure and data worksheets and '
+                   'other higher level formatting details. The default batch '
+                   'worksheet name is "_batch".')
+@click.argument('input_file',
+                type=click.Path(exists=True)
+                )
+def multi(input_file, batch):
+    """
+    Run Laundry on multiple worksheets.
+    """
+    file_input = Path(input_file)
+    wksht_batch = batch
+    wash_multi(file_input, wksht_batch)
+
+# ==> Functions
+# General functions are moved here for ease of navigation.
+
+
 def strip_list_whitespace(wht_spc: List) -> List:
     i = []
     for each in wht_spc:
         i.append(each.strip())
     return i
+
+
+def remove_underscore(text: str) -> str:
+    return text.replace('_', ' ')
+
+
+def confirm_path_file(filepath: List[str]) -> bool:
+    """
+    Convert the contents of the passed list into a Path and if it points to a file
+    return True.
+    :param filepath:
+    :return:
+    """
+    filepath = filepath
+    p = PurePath()
+    for each in filepath:
+        q = PurePath(each.replace('\\', '/').strip('/'))
+        p = p / Path(q.as_posix())
+    return Path(p).exists()
+
+
+def confirm_path_directory(filepath: List[str]) -> Path:
+    """
+    Convert the contents of the passed list into a Path. This function assumes
+    that the sum of the passed list will be a single path to a directory.
+    :param filepath: a list of path names as string
+    :return: Path
+    """
+    filepath = filepath
+    p = PurePath()
+    for each in filepath:
+        q = PurePath(each.replace('\\', '/').strip('/'))
+        p = p / Path(q.as_posix())
+    r = Path(p)
+    if r.is_dir():
+        return r
+    return 'Incorrect path.'

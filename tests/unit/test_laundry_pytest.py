@@ -18,8 +18,7 @@ def test_remove_underscore():
     assert test == expected
 
 
-@pytest.mark.parametrize('sect_contains,expected', [
-    ('1234\n5678', ['1234', '5678'])
+@pytest.mark.parametrize('data_str,expected', [('1234\n5678', ['1234', '5678'])
 ])
 def test_section_contains(sect_contains, expected):
     expected = expected
