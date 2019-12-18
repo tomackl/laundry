@@ -1,5 +1,5 @@
 import pytest
-from laundry.laundryclass import Laundry, split_str, sort_table_data, remove_underscore, confirm_directory_path
+from laundry.laundryclass import SingleLoad, split_str, sort_table_data, remove_underscore, confirm_directory_path
 from pathlib import Path, PurePath
 
 struct_dict = {1: 'a', 2: 'b'}
@@ -9,14 +9,14 @@ file_path = 'this_file_the_file_path'
 file_output = 'output_file_path'
 
 
-def test_laundry__init__():
+def test_singleload__init__():
     """This test is limited to testing that the object is created successfully."""
-    obj = Laundry(struct_dict, data_dict, file_template, file_path, file_output)
-    assert type(obj) is Laundry
+    obj = SingleLoad(struct_dict, data_dict, file_template, file_path, file_output)
+    assert type(obj) is SingleLoad
 
 
-def test_split_into_rows():
-    obj = Laundry(struct_dict, data_dict, file_template, file_path, file_output)
+def test_singleload_split_into_rows():
+    obj = SingleLoad(struct_dict, data_dict, file_template, file_path, file_output)
     result = [{3: 'c'}, {4: 'd'}]
     obj.split_into_rows()
     assert obj._row_data == result
@@ -87,3 +87,7 @@ def test_remove_underscore():
                                                 ])
 def test_confirm_directory_path(test_path, expected):
     assert confirm_directory_path(test_path) == expected
+
+
+def test_laundry__init__():
+    pass

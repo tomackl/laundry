@@ -5,6 +5,7 @@ from typing import Dict, List, Iterable, Tuple
 from docx import Document
 from docx.shared import Inches
 from pathlib import Path, PurePath
+import pandas as pd
 
 
 structure_keys = ('sectiontype', 'sectioncontains', 'sectionstyle', 'titlestyle', 'sectionbreak', 'pagebreak', 'path')
@@ -75,7 +76,7 @@ def confirm_directory_path(filepath: List[str]) -> (Path, str):
     return 'Incorrect path.'
 
 
-class Laundry:
+class SingleLoad:
     """
     This class is intended to replace the original Laundry's procedural approach from the single load function.
     The click.progressbar() will not be transferred from the original function.
@@ -228,3 +229,68 @@ class Laundry:
         :return:
         """
         self._file_template.save(self._output_docx)
+
+
+class Laundry:
+    """
+    """
+    def __init__(self, input_fp: Path, data: str, structure: str = None, batch: str = None):
+        """
+
+        :param input_fp: The file path to the spreadsheet containing the data
+        :param data: The name of the worksheet containing the data to be formatted.
+        :param structure: The name of the worksheet containing the output document's structure.
+        :param batch: The name of the worksheet containing the batch data.
+        """
+        if data is None and structure is None and batch is None:
+            raise TypeError(f'Name of either the "structure" or the "batch" worksheets must be provided.')
+        self._data_wksht: str = data
+        self._structure_wksht: str = structure
+        self._batch_wksht: str = batch
+        # Set up the lists to contain the dictionaries containing: 1. data, 2. output structure, and 3. batch docs
+        self._data: List[dict] = []
+        self._structure: List[dict] = []
+        self._batch: List[dict] = []
+        self._input_fp: Path = input_fp
+        # todo: add check for input_fp
+
+        # todo: 1. add the keywords listed below as __init__ parameters. These will need to converted into a dictionary
+        # todo:     and added to the self._batch for single file operations.
+        # todo: 2. these should be used to check the batch spreadsheet to ensure that the correct col hdrs exist.
+        # data_worksheet
+        # structure_worksheet
+        # header_row
+        # remove_columns
+        # drop_empty_columns
+        # template_file
+        # filter_rows
+        # output_file
+
+    def worksheets_exist(self) -> bool:
+        """
+        Check the expected worksheets exist.
+        :return:
+        """
+        pass
+
+    def clean_data_excel(self) -> (dict, None):
+        """
+        Clean the data and get it into the correct format.
+        :return:
+        """
+        pass
+
+    def file_path_exists(self) -> bool:
+        """
+        Confirm that the passed file exists on the file system.
+        :return:
+        """
+        pass
+
+    def single_load(self) -> SingleLoad:
+        """
+        Create a Laundry object.
+        :return:
+        """
+        pass
+
