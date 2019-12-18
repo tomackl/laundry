@@ -221,3 +221,10 @@ class Laundry:
                 return True
         print(f'\nPhoto {photo} does not exist. Check file extension.')
         self._output_docx.add_paragraph(f'PHOTO "{str(photo).upper()}" NOT FOUND\n')
+
+    def issue_document(self):
+        """
+        Output the file.
+        :return:
+        """
+        self._file_template.save(self._output_docx)
