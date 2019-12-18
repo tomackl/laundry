@@ -28,7 +28,7 @@ def split_str(data_str: str) -> List[str]:
         return i
 
 
-def extract_data(record: Dict, header: List[str], format_title: bool = True) -> List[Tuple]:
+def sort_table_data(record: Dict, header: List[str], format_title: bool = True) -> List[Tuple]:
     """
     Take a dictionary and split in to a list of tuples containing the 'keys' data defined in 'header' as the first tuple
     and the associated values as the second. The function will return a list containing two equal length tuples. The
@@ -43,11 +43,9 @@ def extract_data(record: Dict, header: List[str], format_title: bool = True) -> 
     for each in header:
         hdr_data = remove_underscore(each)
         if format_title is True:
-            hdr_list.append(hdr_data.title())
-        else:
-            hdr_list.append(hdr_data)
-        t = record.pop(each)
-        data_list.append(t)
+            hdr_data = hdr_data.title()
+        hdr_list.append(hdr_data)
+        data_list.append(record.pop(each))
     return [tuple(hdr_list), tuple(data_list)]
 
 
@@ -67,12 +65,11 @@ def confirm_directory_path(filepath: List[str]) -> (Path, str):
     :param filepath: a list of path names as string
     :return: Path
     """
-    filepath = filepath
-    p = PurePath()
+    path = PurePath()
     for each in filepath:
         q = PurePath(each.replace('\\', '/').strip('/'))
-        p = p / Path(q.as_posix())
-    r = Path(p)
+        path = path / Path(q.as_posix())
+    r = Path(path)
     if r.is_dir():
         return r
     return 'Incorrect path.'
@@ -87,20 +84,20 @@ class Laundry:
     2. Data passed to the class is in the correct format.
     3. The output file will be created by the object.
     """
-    def __init__(self, structure_dict: Dict, data_dict: Dict, file_template: str, file_path: (Path, str),
+    def __init__(self, structure_dict: Dict, data_dict: Dict, file_template: str, spreadsheet_fp: (Path, str),
                  file_output_path: (Path, str)):
         """
         # The method signature is based on the laundry.single_load() function. This calls self.format_docx()
         :param structure_dict: A dictionary that defines the structure of the documentation. 
         :param data_dict: A dictionary that contains the data to be formatted.
         :param file_template: The Word .docx file that contains the formatting styles to be used.
-        :param file_path: The path to the directory containing the spreadsheet.
+        :param spreadsheet_fp: The path to the directory containing the spreadsheet.
         :param file_output_path: The path to the output file location.
         """
         self._structure: dict = structure_dict
         self._data: dict = data_dict
         self._file_template: str = file_template   # todo: This should probably be a Path()
-        self._file_path: (Path, str) = file_path
+        self._spreadsheet_fp: (Path, str) = spreadsheet_fp
         self._file_output: (Path, str) = file_output_path
         self._output_docx = Document()
         self._row_data: List[Dict] = list()
@@ -118,30 +115,66 @@ class Laundry:
         """
         Start formatting the output document.
         """
-        # for each in self._row_data:
-        #     self.format_docx(each)
-        pass
+        for each in self._row_data:
+            self.format_docx(each)
 
-    def format_docx(self, rowdict: dict, structdict: dict, output_document: Document(), file_path_input: str,
-                    file_output_path: str):
+    def format_docx(self, row: dict, file_path_input: str, file_output_path: str):
         """
         This is factory method that calls the appropriate the information contained within document structure.
         # The method signature is based on the laundry.format_docx() function. This calls:
         # - self.insert_paragraph()
         # - self.insert_table()
         # - self.insert_photo()
-        :param rowdict: dictionary containing the data_str to be formatted. This is a single row from the spreadsheet/
+        :param row: dictionary containing the data_str to be formatted. This is a single row from the spreadsheet/
         :param structdict: defines the output file's format structure.
-        :param output_document: The file into which the data will be inserted into.
+        :param outputfile: The file into which the data will be inserted into.
         :param file_path_input: The directory containing the spreadsheet. Resources are referenced from this directory.
         :param file_output_path: The path of the output file. The output file will be saved here.
         :return:
         """
-        # rowdict => rowdict
+        # row => each passed from self.start_wash()
         # structdict => self._structure
-        # output_file => self._file_template
-        # input_file_path => self._file_path
-        pass
+        # output_document => self._output_docx
+        # outputfile => self._file_template
+        # input_file_path => self._spreadsheet_fp
+
+        for element in self._structure:
+            ele_sect_contains: str = str(element['sectioncontains']).lower()
+            ele_sect_style: str = element['sectionstyle']
+            ele_sect_type: str = str(element['sectiontype']).lower()
+            ele_title_style: str = element['titlestyle']
+            ele_sect_break: bool = element['sectionbreak']
+            ele_page_break: bool = element['pagebreak']
+            ele_row_contains = row[ele_sect_contains]
+
+            if ele_sect_type in ('heading', 'para', 'paragraph'):
+                self.insert_paragraph(str(ele_row_contains).lower(), title=ele_sect_contains.title(),
+                                      section_style=ele_sect_style, title_style=ele_title_style)
+
+            elif ele_sect_type == 'table':
+                table_col_hdr = split_str(ele_sect_contains)
+                sorted_row = sort_table_data(row, table_col_hdr)
+                self.insert_table(len(table_col_hdr),
+                                  len(sorted_row),
+                                  sorted_row,
+                                  section_style=ele_sect_style,
+                                  )
+
+            elif ele_sect_type == 'photo':
+                q = confirm_directory_path([self._spreadsheet_fp, element['path']])
+                if str(ele_row_contains).lower() not in ['no photo', 'none', 'nan', '-']:
+                    photo = split_str(ele_row_contains)
+                    for each in photo:
+                        loc = q.joinpath(each)
+                        self.insert_photo(str(loc), 4)
+            else:
+                print('Valid section header was not found.')
+
+            if ele_sect_break is True:
+                self.insert_paragraph(self._output_docx, '')
+
+            if ele_page_break is True:
+                self._output_docx.add_page_break()
 
     def insert_paragraph(self, text: str, title: str = None, section_style: str = None,
                          title_style: str = None):
@@ -180,22 +213,13 @@ class Laundry:
         data = enumerate(data, 0)
         for i, cell_contents in data:
             self._insert_row(table.rows[i].cells, cell_contents)
-
-    @staticmethod
-    def _insert_row(row_cells, data: List[str]):
-        """
-        Populate a table row. The cells are passed as a row and the contents added.
-        :param row_cells:
-        :param data:
-        :return:
-        """
-        for i, text in enumerate(data):
-            row_cells[i].text = str(text)
-        return row_cells
+            # The lines below have replaced the insert_row function
+            for j, text in enumerate(data):
+                table.rows[i].cells[j].text = str(text)
 
     def insert_photo(self, photo: str, width: int = 4):
         """
-        Insert a photo located at path into document and set the photo to width.
+        Insert a photo located at path into document and set the photo width.
         :param photo: file path to the
         :param width: width of the image in Inches
         :return:
@@ -205,5 +229,5 @@ class Laundry:
             if photo_path.exists():
                 self._output_docx.add_picture(str(photo_path), width=Inches(width))
                 return True
-        print('\nPhoto {} does not exist. Check file extension.'.format(photo))
-        self._output_docx.add_paragraph('PHOTO "{}" NOT FOUND\n'.format(str(photo).upper()))
+        print(f'\nPhoto {photo} does not exist. Check file extension.')
+        self._output_docx.add_paragraph(f'PHOTO "{str(photo).upper()}" NOT FOUND\n')

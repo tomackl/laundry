@@ -1,5 +1,6 @@
 import pytest
-from laundry.laundryclass import Laundry, split_str, extract_data, remove_underscore
+from laundry.laundryclass import Laundry, split_str, sort_table_data, remove_underscore, confirm_directory_path
+from pathlib import Path, PurePath
 
 struct_dict = {1: 'a', 2: 'b'}
 data_dict = {3: 'c', 4: 'd'}
@@ -54,22 +55,24 @@ def test_split_str(data_str, expected):
 
 
 @pytest.mark.parametrize('record,header,format_title,expected',
-                         [({"asset_name": "Storage shed", "component": "Isolator",
+                         [({"asset_name": "Storage shed",
+                            "component": "Isolator",
                             "defect_type": "Technical Requirement"},
                            ["asset_name", "component", "defect_type"],
                            True,
                            [("Asset Name", "Component", "Defect Type"),
                             ("Storage shed", "Isolator", "Technical Requirement")]),
-                          ({"asset_name": "Storage shed", "component": "Isolator",
+                          ({"asset_name": "Storage shed",
+                            "component": "Isolator",
                             "defect_type": "Technical Requirement"},
                            ["asset_name", "component", "defect_type"],
                            False,
                            [("asset name", "component", "defect type"),
                             ("Storage shed", "Isolator", "Technical Requirement")])
                           ])
-def test_extract_data(record, header, format_title, expected):
+def test_sort_table_data(record, header, format_title, expected):
     expected = expected
-    result = extract_data(record, header, format_title)
+    result = sort_table_data(record, header, format_title)
     assert expected == result
 
 
@@ -78,5 +81,9 @@ def test_remove_underscore():
     assert remove_underscore('this_is_a_test') == expected
 
 
-def test_directory_path():
-    pass
+@pytest.mark.parametrize('test_path,expected', [[[r'\\..\unit'], Path(r'../unit')],
+                                                [[r'/../../src'], Path(r'../../src')],
+                                                [[r'/test_laundryclass.py'], r'Incorrect path.']
+                                                ])
+def test_confirm_directory_path(test_path, expected):
+    assert confirm_directory_path(test_path) == expected
