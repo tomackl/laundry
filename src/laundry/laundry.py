@@ -18,7 +18,7 @@ def clean_xlsx_table(file_path: str, sheet: str, head: int = 0,
                      rm_column: List[str] = None, clean_hdr: bool = False,
                      drop_empty: bool = False) -> data_frame:
     """
-    Open and perform basic data cleaning on a single excel work sheet.
+    Open and perform basic cell_data cleaning on a single excel work sheet.
     :param file_path: path to the excel file
     :param sheet: excel spreadsheet name
     :param head: index of the header row in the spreadsheet. Defaults to 0.
@@ -42,9 +42,9 @@ def extract_data(record: Dict, header: List[str], format_title: bool = True
                  ) -> List[Tuple]:
     """
     Take a dictionary and split in to a list of tuples containing the 'keys'
-    data defined in 'header' as the first tuple and the associated values as the second.
+    cell_data defined in 'header' as the first tuple and the associated values as the second.
     The function will return a list containing two equal length tuples.
-    :param record: the dictionary containing the data.
+    :param record: the dictionary containing the cell_data.
     :param header: the keys that defined the key-values to be extracted.
     :param format_title: make the header string title case.
     :return: a list of tuples
@@ -103,13 +103,13 @@ def insert_table(document: object, cols: int, rows: int,
                  data: List[Iterable[str]], section_style: str = None,
                  autofit: bool = True):
     """
-    The function takes data and uses it to create a table for the template_doc.
-    The first row of data is assumed to be the table header.
+    The function takes cell_data and uses it to create a table for the template_doc.
+    The first row of cell_data is assumed to be the table header.
     20190814 'add_table_hdr added to allow the table header to be dropped from the table if not required.
     :param document: the docx file the table will be added to.
     :param rows: the number of required table rows.
     :param cols: the number of required table columns.
-    :param data: The list data to be inserted into the table. The idx[0] is assumed to be the header.
+    :param data: The list cell_data to be inserted into the table. The idx[0] is assumed to be the header.
     :param section_style: The style to be used for the table.
     :param autofit: autofit the table to the page width.
     :return:
@@ -156,11 +156,11 @@ def insert_photo(document: object, photo: str, width: int = 4):
 
 def format_docx(rowdict: dict, structdict: dict, outputfile: object, file_path: str):
     """
-    The function is passed a dict (data_dict) containing the data to be formatted
+    The function is passed a dict (data_dict) containing the cell_data to be formatted
     (structure) based on the template (outputfile).
     :param rowdict: dictionary containing the data_str. It represents a single row from the spreadsheet.
     :param structdict: defines the output file's format structure.
-    :param outputfile: The file which data will be inserted into.
+    :param outputfile: The file which cell_data will be inserted into.
     :param file_path: directory containing the spreadsheet
     :return:
     """
@@ -229,7 +229,7 @@ def single_load(structure_dict: Dict, data_dict: Dict, file_template: str, path_
     """
     This function controls the production of the output file and is called for both the single and multi modes.
     :param structure_dict: defines the structure of the output file
-    :param data_dict: contains the data to be manipulated and exported in the output file.
+    :param data_dict: contains the cell_data to be manipulated and exported in the output file.
     :param file_template: template document that will form the basis of the output file.
     :param path_input_f: path to the current working directory.
     :param file_output: output file name.
@@ -257,12 +257,12 @@ def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_
     """
     This function acts as a common calling point for the module to allow the module to be run from the command line
     interface (cli) or from another script.
-    :param file_input: the .xls file containing the data to be converted.
+    :param file_input: the .xls file containing the cell_data to be converted.
     :param file_output: name of the output file.
-    :param wkst_data: name of the .xls worksheet containing the data to be processed
-    :param wkst_struct: name of the .xls worksheet detailing how the data shall be processed
+    :param wkst_data: name of the .xls worksheet containing the cell_data to be processed
+    :param wkst_struct: name of the .xls worksheet detailing how the cell_data shall be processed
     :param template: the .docx file to be used as the template
-    :param data_head: the number of the data worksheet's row containing the column headers.
+    :param data_head: the number of the cell_data worksheet's row containing the column headers.
     """
     # todo: add exception to ensure that the `template` file actually exists.
     #  `docx.opc.exceptions.PackageNotFoundError' is raised if the file does not exist.
@@ -282,15 +282,15 @@ def wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_
         single_load(structure_file.to_dict('records'), data_file.to_dict('records'),
                     file_template, path_input_f, file_output)
     else:
-        print('Valid data not found.')
+        print('Valid cell_data not found.')
 
 
 def wash_multi(file_input, wksht_batch):
     """
     This function acts as a common calling point for the module to allow the module to be run from the command line
     interface (cli) or from another script.
-    :param file_input: the .xls file containing the data to be converted.
-    :param wksht_batch: name of the .xls worksheet detailing how the data shall be processed
+    :param file_input: the .xls file containing the cell_data to be converted.
+    :param wksht_batch: name of the .xls worksheet detailing how the cell_data shall be processed
     """
     # todo: add exception to ensure that the `template` file actually exists.
     #  `docx.opc.exceptions.PackageNotFoundError' is raised if the file does not exist.
@@ -306,7 +306,7 @@ def wash_multi(file_input, wksht_batch):
         sort_colours(format_file.to_dict('records'), check_load, file_input, path_input_f)
 
     else:
-        print('Valid data not found.')
+        print('Valid cell_data not found.')
 
 
 def sort_colours(load: Dict, check_load, file_input, path_input_f):
@@ -397,9 +397,9 @@ def cli():
 
 
 @cli.command()
-@click.option('--data-worksheet', '-dw', 'data',
+@click.option('--cell_data-worksheet', '-dw', 'cell_data',
               default='Master List',
-              help='Name of the worksheet containing the data to be converted into a '
+              help='Name of the worksheet containing the cell_data to be converted into a '
                    'word document. '
                    'The default is "Master List".'
               )
@@ -410,13 +410,13 @@ def cli():
               )
 @click.option('--structure-worksheet', '-sw', '-s', 'structure',
               default='_structure',
-              help='Name of the worksheet containing the data to format the structure '
+              help='Name of the worksheet containing the cell_data to format the structure '
                    'of the outfile document. The default is "_structure".'
               )
-@click.option('--data-header', '-dh', 'data_head',
+@click.option('--cell_data-header', '-dh', 'data_head',
               default=0,
               type=int,
-              help="The row number of the data worksheet's row containing the column "
+              help="The row number of the cell_data worksheet's row containing the column "
                    "headers. The default is 0."
               )
 @click.argument('input_file',
@@ -446,8 +446,8 @@ def single(input_file, output_file, data, structure, template, data_head):
 @cli.command()
 @click.option('--batch-worksheet', '-b', 'batch',
               default='_batch',
-              help='Name of the worksheet containing the format data. This '
-                   'worksheet defines the structure and data worksheets and '
+              help='Name of the worksheet containing the format cell_data. This '
+                   'worksheet defines the structure and cell_data worksheets and '
                    'other higher level formatting details. The default batch '
                    'worksheet name is "_batch".')
 @click.argument('input_file',

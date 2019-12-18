@@ -30,13 +30,13 @@ def split_str(data_str: str) -> List[str]:
 
 def sort_table_data(record: Dict, header: List[str], format_title: bool = True) -> List[Tuple]:
     """
-    Take a dictionary and split in to a list of tuples containing the 'keys' data defined in 'header' as the first tuple
+    Take a dictionary and split in to a list of tuples containing the 'keys' cell_data defined in 'header' as the first tuple
     and the associated values as the second. The function will return a list containing two equal length tuples. The
-    function assumes that the data contained in record and header is in the correct order.
-    :param record: The dictionary containing the data.
+    function assumes that the cell_data contained in record and header is in the correct order.
+    :param record: The dictionary containing the cell_data.
     :param header: The keys that defined the key-values to be extracted.
     :param format_title: If True make the header string title case.
-    :return: A list of tuples containing the header and data information.
+    :return: A list of tuples containing the header and cell_data information.
     """
     hdr_list: List[str] = []
     data_list: List[str] = []
@@ -89,7 +89,7 @@ class Laundry:
         """
         # The method signature is based on the laundry.single_load() function. This calls self.format_docx()
         :param structure_dict: A dictionary that defines the structure of the documentation. 
-        :param data_dict: A dictionary that contains the data to be formatted.
+        :param data_dict: A dictionary that contains the cell_data to be formatted.
         :param file_template: The Word .docx file that contains the formatting styles to be used.
         :param spreadsheet_fp: The path to the directory containing the spreadsheet.
         :param file_output_path: The path to the output file location.
@@ -118,18 +118,10 @@ class Laundry:
         for each in self._row_data:
             self.format_docx(each)
 
-    def format_docx(self, row: dict, file_path_input: str, file_output_path: str):
+    def format_docx(self, row: dict):
         """
         This is factory method that calls the appropriate the information contained within document structure.
-        # The method signature is based on the laundry.format_docx() function. This calls:
-        # - self.insert_paragraph()
-        # - self.insert_table()
-        # - self.insert_photo()
-        :param row: dictionary containing the data_str to be formatted. This is a single row from the spreadsheet/
-        :param structdict: defines the output file's format structure.
-        :param outputfile: The file into which the data will be inserted into.
-        :param file_path_input: The directory containing the spreadsheet. Resources are referenced from this directory.
-        :param file_output_path: The path of the output file. The output file will be saved here.
+        :param row: dictionary containing the data_str to be formatted. This is a single row from the spreadsheet.
         :return:
         """
         # row => each passed from self.start_wash()
@@ -196,25 +188,23 @@ class Laundry:
                 self._output_docx.add_paragraph(each, style=section_style)
 
     def insert_table(self, cols: int, rows: int, data: List[Iterable[str]], section_style: str = None,
-                     autofit: bool = True):
+                     autofit_table: bool = True):
         """
         The function takes data and uses it to create a table for the template_doc.
         The first row of data is assumed to be the table header.
-        20190814 'add_table_hdr added to allow the table header to be dropped from the table if not required.
+        todo: add 'add_table_hdr added to allow the table header to be dropped from the table if not required.
         :param rows: the number of required table rows.
         :param cols: the number of required table columns.
         :param data: The list data to be inserted into the table. The idx[0] is assumed to be the header.
         :param section_style: The style to be used for the table.
-        :param autofit: autofit the table to the page width.
+        :param autofit_table: autofit the table to the page width.
         :return:
         """
         table = self._output_docx.add_table(rows=rows, cols=cols, style=section_style)
-        table.autofit = autofit
-        data = enumerate(data, 0)
-        for i, cell_contents in data:
-            self._insert_row(table.rows[i].cells, cell_contents)
-            # The lines below have replaced the insert_row function
-            for j, text in enumerate(data):
+        table.autofit = autofit_table
+        cell_data = enumerate(data, 0)
+        for i, cell_contents in cell_data:
+            for j, text in enumerate(cell_contents):
                 table.rows[i].cells[j].text = str(text)
 
     def insert_photo(self, photo: str, width: int = 4):
