@@ -76,6 +76,32 @@ def confirm_directory_path(filepath: List[str]) -> (Path, str):
     return 'Incorrect path.'
 
 
+def file_path_exists(p) -> (Path, Exception):
+    """
+    Resolve the passed filepath returning as a Path() or an exception.
+    :return:
+    """
+    p = Path(p)
+    return p.resolve(strict=True)
+
+
+def values_exist(expected: set, actual: set) -> bool:
+    """
+    Check the expected worksheets exist.
+    :return:
+    """
+    return expected <= actual
+
+
+def remove_from_iterable(values: Iterable, *args) -> List:
+    """Return items in list that are not equal to a value in drop."""
+    data = []
+    for each in values:
+        if each not in args:
+            data.append(each)
+    return data
+
+
 class SingleLoad:
     """
     This class is intended to replace the original Laundry's procedural approach from the single load function.
@@ -232,43 +258,119 @@ class SingleLoad:
 
 
 class Laundry:
-    """
-    """
-    def __init__(self, input_fp: Path, data: str, structure: str = None, batch: str = None):
-        """
 
-        :param input_fp: The file path to the spreadsheet containing the data
-        :param data: The name of the worksheet containing the data to be formatted.
-        :param structure: The name of the worksheet containing the output document's structure.
-        :param batch: The name of the worksheet containing the batch data.
+    def __init__(self, input_fp: Path, data_worksheet: str = None, structure_worksheet: str = None,
+                 batch_worksheet: str = None, header_row: int = 0, remove_columns: str = None,
+                 drop_empty_columns: bool = None, template_file: str = None, filter_rows: str = None,
+                 output_fp: (Path, str) = None):
         """
-        if data is None and structure is None and batch is None:
-            raise TypeError(f'Name of either the "structure" or the "batch" worksheets must be provided.')
-        self._data_wksht: str = data
-        self._structure_wksht: str = structure
-        self._batch_wksht: str = batch
+        Instantiating the class will run error checking on the passed information, checking for the following steps:
+        1. A basic check that worksheet names have been passed.
+        2. The input file's path is correct.
+        3. Check that the data, structure and batch worksheet names passed at instantiation exist within the file. This
+            is the first worksheet name check, additional check will be made as required.
+        4. If the batching information is passed to the object at instantiation, then merge this into a dictionary.
+            Error checking will be completed later.
+        5.
+        :param input_fp: The file path to the spreadsheet containing the data
+        :param data_worksheet: The name of the worksheet containing the data to be formatted.
+        :param structure_worksheet: The name of the worksheet containing the output document's structure.
+        :param batch_worksheet: The name of the worksheet containing the batch data.
+        :param header_row: 
+        :param remove_columns: 
+        :param drop_empty_columns: 
+        :param template_file: 
+        :param filter_rows: 
+        :param output_fp: 
+        """
+        # Step 1: Basic data checking.
+        if data_worksheet is None and structure_worksheet is None and batch_worksheet is None:
+            raise Exception('InitError') from TypeError(f'Either the "data" and "structure" worksheets, or the "batch" '
+                                                        f'worksheet must be provided.')
+        self._data_wksht: str = data_worksheet
+        self._structure_wksht: str = structure_worksheet
+        self._batch_wksht: str = batch_worksheet
+
+        # Step 2: Confirm the input file exists.
+        try:
+            self._input_fp = file_path_exists(input_fp)
+        except Exception as e:
+            print(f'{e}: File {input_fp} does not exist.')
+
+        # Load the Excel file into memory.
+        self._washing_basket = pd.ExcelFile(self._input_fp)
+
+        # Gather the worksheet names
+        self._sheets_actual: list = self._washing_basket.sheet_names
+        sheets_expected = remove_from_iterable([self._data_wksht, self._structure_wksht, self._batch_wksht], None)
+
         # Set up the lists to contain the dictionaries containing: 1. data, 2. output structure, and 3. batch docs
         self._data: List[dict] = []
         self._structure: List[dict] = []
         self._batch: List[dict] = []
-        self._input_fp: Path = input_fp
-        # todo: add check for input_fp
+
+        # Define headers for the batch and structure worksheets. These are fixed.
+        self._batch_hdrs = ['data_worksheet', 'structure_worksheet', 'header_row', 'remove_columns',
+                            'drop_empty_columns', 'template_file', 'filter_rows', 'output_file']
+        self._structure_hdrs = ['section_type', 'section_contains', 'section_style', 'title_style', 'section_break',
+                                'page_break', 'path']
+
+        #  Step 3: Check that the data, structure and batch worksheet names passed exist within the file.
+        if not values_exist(set(sheets_expected), set(self._sheets_actual)):
+            raise Exception('InitError') from TypeError(f'The worksheets {sheets_expected} were not found.')
+
+        # Step 4. If the batching information is passed to the object at instantiation, then merge this into a
+        #   dictionary. Error checking will be completed later.
+        # Step 4.1. If all the expected command line parameters are set to the defaults assume that the a batch
+        #   approach has been used. We do _not_ test for batch since this will be tested for later.
+        input_arg = [data_worksheet, structure_worksheet, header_row, remove_columns, drop_empty_columns, template_file,
+                     filter_rows, output_fp]
+
+        # Step 4.2. Since the default values for the input args are all 'None' or 0, if we remove these values from the
+        #   list, if the list's length is greater than 0 then there is a chance that a single wash is required. We don't
+        #   test for the input file path since this has already occurred.
+        if len(remove_from_iterable(input_arg, None, 0)) > 0:
+            # Step 4.3. Turn the command line arguments into a dict and append to the self._batch list.
+            self._batch.append({'header_row': header_row, 'remove_columns': remove_columns,
+                                'drop_empty_columns': drop_empty_columns, 'template_file': template_file,
+                                'filter_rows': filter_rows, 'output_fp': output_fp})
+            # Step 4.4. Clean the structure data and add to self._structure.
+
+            # Step 4.5. Clean the data data and add to self._data.
+
+
+
+
+            # self._header_row: = header_row
+            # self._remove_columns: =
+            # self._drop_empty_columns: =
+            # self._template_file: =
+            # self._filter_rows: =
+            # self._output_file: =
+
+        # Check the data contained in the batch worksheet and confirm data.
+
+
+
+
+
 
         # todo: 1. add the keywords listed below as __init__ parameters. These will need to converted into a dictionary
         # todo:     and added to the self._batch for single file operations.
         # todo: 2. these should be used to check the batch spreadsheet to ensure that the correct col hdrs exist.
-        # data_worksheet
-        # structure_worksheet
-        # header_row
-        # remove_columns
-        # drop_empty_columns
-        # template_file
-        # filter_rows
-        # output_file
+        # self._data_worksheet: =
+        # self._structure_worksheet: =
+        # self._header_row: =
+        # self._remove_columns: =
+        # self._drop_empty_columns: =
+        # self._template_file: =
+        # self._filter_rows: =
+        # self._output_file: =
 
-    def worksheets_exist(self) -> bool:
+
+    def data_to_dict(self):
         """
-        Check the expected worksheets exist.
+        This method will convert worksheet data into a dictionary for storage.
         :return:
         """
         pass
@@ -276,13 +378,6 @@ class Laundry:
     def clean_data_excel(self) -> (dict, None):
         """
         Clean the data and get it into the correct format.
-        :return:
-        """
-        pass
-
-    def file_path_exists(self) -> bool:
-        """
-        Confirm that the passed file exists on the file system.
         :return:
         """
         pass
