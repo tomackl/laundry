@@ -366,7 +366,7 @@ def filter_rows(df: data_frame, filter_list: List[List[str]]) -> data_frame:
     return df
 
 
-def filter_setup(filters: str) -> List[List[str]]:
+def filter_setup(filters: str) -> List[Tuple[str]]:
     """
     Split the content of the passed tuple into the correct parts
     :return:
