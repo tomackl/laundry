@@ -52,11 +52,11 @@ def test_confirm_directory_path(test_path, expected):
     assert laundry.confirm_directory_path(test_path) == expected
 
 
-def test_file_path_exists():
+def test_resolve_file_path():
     p = './test_laundryclass.py'
     q = Path(p)
     expected = q.resolve()
-    assert laundry.file_path_exists(p) == expected
+    assert laundry.resolve_file_path(p) == expected
 
 
 def test_value_exists():
@@ -118,3 +118,10 @@ def test_laundry__init__FileNotFoundError():
     """Test the file not found exception."""
     pass
 
+
+def test_laundry_check_batch_data():
+    pass
+
+
+def test_laundry_excel_to_dataframe():
+    pass

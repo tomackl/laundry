@@ -18,7 +18,7 @@ def clean_xlsx_table(file_path: str, sheet: str, head: int = 0,
                      rm_column: List[str] = None, clean_hdr: bool = False,
                      drop_empty: bool = False) -> data_frame:
     """
-    Open and perform basic cell_data cleaning on a single excel work sheet.
+    Open and perform basic cell_data cleaning on a single excel work worksheet.
     :param file_path: path to the excel file
     :param sheet: excel spreadsheet name
     :param head: index of the header row in the spreadsheet. Defaults to 0.
@@ -27,7 +27,7 @@ def clean_xlsx_table(file_path: str, sheet: str, head: int = 0,
     :param drop_empty: If True remove empty rows.
     :return:
     """
-    # todo: add exception here to catch a XLRDError in the event of a misnamed work sheet.
+    # todo: add exception here to catch a XLRDError in the event of a misnamed work worksheet.
     df = pd.read_excel(pd.ExcelFile(file_path), sheet, head)
     if rm_column is not None:
         df = df.remove_columns(rm_column)
@@ -337,7 +337,7 @@ def sort_colours(load: Dict, check_load, file_input, path_input_f):
         df = clean_xlsx_table(file_input,
                               row['data_worksheet'],
                               head=row['header_row'],
-                              # rm_column=remove_columns,
+                              # remove_col=remove_columns,
                               clean_hdr=True,
                               drop_empty=True
                               )

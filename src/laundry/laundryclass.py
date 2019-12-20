@@ -7,9 +7,8 @@ from docx.shared import Inches
 from pathlib import Path, PurePath
 import pandas as pd
 
-
 structure_keys = ('sectiontype', 'sectioncontains', 'sectionstyle', 'titlestyle', 'sectionbreak', 'pagebreak', 'path')
-batch_keys = ('data_worksheet', 'structure_worksheet', 'header_row', 'remove_columns', 'drop_empty_columns',
+batch_keys = ('data_worksheet', 'structure_worksheet', 'header_row', 'remove_columns', 'drop_empty_rows',
               'template_file', 'filter_rows', 'output_file')
 
 
@@ -76,7 +75,7 @@ def confirm_directory_path(filepath: List[str]) -> (Path, str):
     return 'Incorrect path.'
 
 
-def file_path_exists(p) -> (Path, Exception):
+def resolve_file_path(p) -> (Path, Exception):
     """
     Resolve the passed filepath returning as a Path() or an exception.
     :return:
@@ -111,6 +110,7 @@ class SingleLoad:
     2. Data passed to the class is in the correct format.
     3. The output file will be created by the object.
     """
+
     def __init__(self, structure_dict: Dict, data_dict: Dict, file_template: str, spreadsheet_fp: (Path, str),
                  file_output_path: (Path, str)):
         """
@@ -123,7 +123,7 @@ class SingleLoad:
         """
         self._structure: dict = structure_dict
         self._data: dict = data_dict
-        self._file_template: str = file_template   # todo: This should probably be a Path()
+        self._file_template: str = file_template  # todo: This should probably be a Path()
         self._spreadsheet_fp: (Path, str) = spreadsheet_fp
         self._file_output: (Path, str) = file_output_path
         self._output_docx = Document()
@@ -261,7 +261,7 @@ class Laundry:
 
     def __init__(self, input_fp: Path, data_worksheet: str = None, structure_worksheet: str = None,
                  batch_worksheet: str = None, header_row: int = 0, remove_columns: str = None,
-                 drop_empty_columns: bool = None, template_file: str = None, filter_rows: str = None,
+                 drop_empty_rows: bool = None, template_file: str = None, filter_rows: str = None,
                  output_fp: (Path, str) = None):
         """
         Instantiating the class will run error checking on the passed information, checking for the following steps:
@@ -278,7 +278,8 @@ class Laundry:
         :param batch_worksheet: The name of the worksheet containing the batch data.
         :param header_row: 
         :param remove_columns: 
-        :param drop_empty_columns: 
+        :param drop_empty_rows: An explicit tag to drop empty rows from the worksheet if they contain two or more empty
+        cells. If this is left as None it will be automatically set to True for the data worksheet.
         :param template_file: 
         :param filter_rows: 
         :param output_fp: 
@@ -287,13 +288,13 @@ class Laundry:
         if data_worksheet is None and structure_worksheet is None and batch_worksheet is None:
             raise Exception('InitError') from TypeError(f'Either the "data" and "structure" worksheets, or the "batch" '
                                                         f'worksheet must be provided.')
-        self._data_wksht: str = data_worksheet
-        self._structure_wksht: str = structure_worksheet
-        self._batch_wksht: str = batch_worksheet
+        # self._data_wksht: str = data_worksheet
+        # self._structure_wksht: str = structure_worksheet
+        # self._batch_wksht: str = batch_worksheet
 
         # Step 2: Confirm the input file exists.
         try:
-            self._input_fp = file_path_exists(input_fp)
+            self._input_fp = resolve_file_path(input_fp)
         except Exception as e:
             print(f'{e}: File {input_fp} does not exist.')
 
@@ -310,10 +311,10 @@ class Laundry:
         self._batch: List[dict] = []
 
         # Define headers for the batch and structure worksheets. These are fixed.
-        self._batch_hdrs = ['data_worksheet', 'structure_worksheet', 'header_row', 'remove_columns',
-                            'drop_empty_columns', 'template_file', 'filter_rows', 'output_file']
-        self._structure_hdrs = ['section_type', 'section_contains', 'section_style', 'title_style', 'section_break',
-                                'page_break', 'path']
+        self._batch_headers = ['data_worksheet', 'structure_worksheet', 'header_row', 'remove_columns',
+                               'drop_empty_rows', 'template_file', 'filter_rows', 'output_file']
+        self._structure_headers = ['section_type', 'section_contains', 'section_style', 'title_style', 'section_break',
+                                   'page_break', 'path']
 
         #  Step 3: Check that the data, structure and batch worksheet names passed exist within the file.
         if not values_exist(set(sheets_expected), set(self._sheets_actual)):
@@ -323,64 +324,119 @@ class Laundry:
         #   dictionary. Error checking will be completed later.
         # Step 4.1. If all the expected command line parameters are set to the defaults assume that the a batch
         #   approach has been used. We do _not_ test for batch since this will be tested for later.
-        input_arg = [data_worksheet, structure_worksheet, header_row, remove_columns, drop_empty_columns, template_file,
+        input_arg = [data_worksheet, structure_worksheet, header_row, remove_columns, drop_empty_rows, template_file,
                      filter_rows, output_fp]
+
+        # Prep the
+        t_batch_dict: dict = {}
 
         # Step 4.2. Since the default values for the input args are all 'None' or 0, if we remove these values from the
         #   list, if the list's length is greater than 0 then there is a chance that a single wash is required. We don't
         #   test for the input file path since this has already occurred.
         if len(remove_from_iterable(input_arg, None, 0)) > 0:
-            # Step 4.3. Turn the command line arguments into a dict and append to the self._batch list.
-            self._batch.append({'header_row': header_row, 'remove_columns': remove_columns,
-                                'drop_empty_columns': drop_empty_columns, 'template_file': template_file,
-                                'filter_rows': filter_rows, 'output_fp': output_fp})
-            # Step 4.4. Clean the structure data and add to self._structure.
 
-            # Step 4.5. Clean the data data and add to self._data.
+            # If the drop_empty_rows is None set it to True. This will save the user problems.
+            if drop_empty_rows is None:
+                drop_empty_rows = True
 
+            # Step 4.3. Turn the command line arguments into a dict and store temporarily.
+            t_batch_dict = {'data_worksheet': data_worksheet, 'structure_worksheet': structure_worksheet,
+                            'header_row': header_row, 'remove_columns': remove_columns,
+                            'drop_empty_rows': drop_empty_rows, 'template_file': template_file,
+                            'filter_rows': filter_rows, 'output_fp': output_fp}
 
+            # # Step 4.4. Conduct error checking on the temporary dict and if passes move to self._batch.
+            # try:
+            #     self.check_batch_data(t_batch_dict)
+            # except Exception as e:
+            #     print(e)
 
+        else:
+            # Step 5. If batch information passed as a worksheet clean and sort the batch data.
+            t_batch_df: pd.DataFrame = self.excel_to_dataframe(self._washing_basket, batch_worksheet, header_row=0,
+                                                               clean_header=True)
+            t_batch_dict: dict = t_batch_df.to_dict('records')
 
-            # self._header_row: = header_row
-            # self._remove_columns: =
-            # self._drop_empty_columns: =
-            # self._template_file: =
-            # self._filter_rows: =
-            # self._output_file: =
+        # Step 6. Check the batch data and store in self._batch
+        for each in t_batch_dict:
+            try:
+                self.check_batch_data(t_batch_dict[each])
+                print(f'Checking row: {each}')
+            except Exception as e:
+                print(f'{e}')
 
-        # Check the data contained in the batch worksheet and confirm data.
+        # Step x. With the command line arguments in a dictionary we can treat the single wash as a batch process.
+        # Clean the structure data and add to self._structure and convert to a dict.
+        t_structure_df: pd.DataFrame = self.excel_to_dataframe(self._washing_basket,
+                                                               worksheet=self._structure_wksht,
+                                                               clean_header=True)
+        t_structure_dict: dict = t_structure_df.to_dict('records')
 
+        # Step x. Clean the data data and add to self._data.
+        t_data_df: pd.DataFrame = self.excel_to_dataframe(self._washing_basket, worksheet=self._data_wksht,
+                                                          header_row=header_row, clean_header=True,
+                                                          drop_empty_rows=t_batch_dict['drop_empty_rows'])
+        t_data_dict: dict = t_data_df.to_dict('records')
 
+        # Step 4.6. Check file paths that
 
-
-
-
-        # todo: 1. add the keywords listed below as __init__ parameters. These will need to converted into a dictionary
-        # todo:     and added to the self._batch for single file operations.
-        # todo: 2. these should be used to check the batch spreadsheet to ensure that the correct col hdrs exist.
-        # self._data_worksheet: =
-        # self._structure_worksheet: =
-        # self._header_row: =
-        # self._remove_columns: =
-        # self._drop_empty_columns: =
-        # self._template_file: =
-        # self._filter_rows: =
-        # self._output_file: =
-
-
-    def data_to_dict(self):
+    def check_batch_data(self, batch_data: dict):
         """
-        This method will convert worksheet data into a dictionary for storage.
+        Pass a dictionary and check that the data is correct. The following checks are made:
+        1. The correct headers are in the dictionary.
+        2. Something other than None has been passed for 'data_worksheet', 'structure_worksheet' and 'output_file'.
+        3. The template file exists.
+        4. If values have not been passed for 'remove_columns', 'drop_empty_rows' and 'filter_rows', set them to their
+        defaults.
+        :param batch_data:
         :return:
         """
-        pass
+        # Check 1.
+        batch_data_keys = batch_data.keys()
+        if len(set(self._batch_headers).difference(batch_data_keys)) == 0:
+            raise Exception('HeaderError') from TypeError(f'The provided batch headers {batch_data_keys} do not match '
+                                                          f'the required headers {self._batch_headers}.')
+        # Check 2.
+        for each in ['data_worksheet', 'structure_worksheet', 'output_file']:
+            if batch_data[each] is None:
+                raise Exception('WorksheetError') from TypeError(f'Worksheet {each} has not been provided.')
 
-    def clean_data_excel(self) -> (dict, None):
+        # Check 3.
+        try:
+            resolve_file_path(batch_data['template_file'])
+        except Exception as e:
+            print(f'{e}: File {batch_data["template_file"]} does not exist.')
+
+        # Check 4.
+        for each in ['remove_columns', 'drop_empty_rows', 'filter_rows']:
+            if batch_data[each] is None:
+                batch_data[each] = False
+        if batch_data['header_row'] is None:
+            batch_data['header_row'] = 0
+
+        self._batch.append(batch_data)
+
+    def excel_to_dataframe(self, io, worksheet: str, header_row: int = 0, remove_col: Iterable[str] = None,
+                           clean_header: bool = False, drop_empty_rows: bool = False) -> data_frame:
         """
-        Clean the data and get it into the correct format.
+        Open and perform basic cell_data cleaning on a single excel work worksheet.
+        :param io: The Excel file to be read.
+        :param worksheet: The Excel spreadsheet worksheet's name.
+        :param header_row: index of the header row in the spreadsheet. Defaults to 0, i.e. assumes the headers are at
+        the top of the page.
+        :param remove_col: remove the column headers contained in the passed list.
+        :param clean_header: If True clean the column headers
+        :param drop_empty_rows: If True remove empty rows.
         :return:
         """
-        pass
+        df = pd.read_excel(io, worksheet, header_row)
+        if remove_col is not None:
+            df = df.remove_columns(remove_col)
+        if clean_header is not False:
+            df = df.clean_names()
+        if drop_empty_rows is True:
+            df = df.dropna(thresh=2)
+        return df
 
     def single_load(self) -> SingleLoad:
         """
@@ -388,4 +444,3 @@ class Laundry:
         :return:
         """
         pass
-
