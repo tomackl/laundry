@@ -13,7 +13,8 @@ file_output = 'output_file_path'
                          [('1234\n5678', ['1234', '5678'])])
 def test_split_str(data_str, expected):
     expected = expected
-    result = laundry.split_str('1234\n5678')
+    result = laundry.split_str(data_str)
+    # result = laundry.split_str('1234\n5678')
     assert result == expected
 
 
@@ -109,15 +110,28 @@ def test_photo():
     pass
 
 
-def test_laundry__init__TypeError():
+def test_laundry__init__worksheet():
+    # with pytest.raises(TypeError) as excinfo:
+    #     obj = laundry.Laundry('1234')
+    # exception_msg = excinfo.value.args[0]
+    # assert exception_msg == 'Either the "data" and "structure" worksheets, or the "batch" worksheet must be provided.'
+    pass
+
+
+def test_laundry_check_worksheets_basic():
     """Test to confirm that an exception is raised if three worksheets are not provided at object instantiation."""
-    pass
+    with pytest.raises(TypeError) as excinfo:
+        laundry.Laundry.check_worksheets_basic([])
+    exception_msg = excinfo.value.args[0]
+    assert exception_msg == 'Either the "data" and "structure" worksheets, or the "batch" worksheet must be provided.'
 
 
-def test_laundry__init__FileNotFoundError():
+def test_laundry_resolve_file_path():
     """Test the file not found exception."""
-    pass
-
+    with pytest.raises(FileNotFoundError) as excinfo:
+        laundry.resolve_file_path('this_file_does_not_exist')
+    exception_msg = excinfo.value.args[1]
+    assert exception_msg == 'No such file or directory'
 
 def test_laundry_check_batch_data():
     pass
@@ -127,6 +141,5 @@ def test_laundry_excel_to_dataframe():
     pass
 
 
-def test_laundry_prepare_row_filters()
+def test_laundry_prepare_row_filters():
     pass
-
