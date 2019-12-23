@@ -16,7 +16,6 @@ expected_structure_headers = ['section_type', 'section_contains', 'section_style
                               'page_break', 'path']
 
 
-
 def split_str(data_str: str) -> List[str]:
     """
     Split a string into a list of strings. The string will be split at ',' or '\n' with '\n' taking precedence.

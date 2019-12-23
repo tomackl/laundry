@@ -30,7 +30,7 @@ A general overview of how Laundry operates is:
 
 ## Running the App
 
-Laundry is operated from the commeand line, so if you're not familiar with command line then you'll need to familarise youself with it first.
+Laundry is operated from the command line, so if you're not familiar with command line then you'll need to familarise yourself with it first.
 
 There are two ways of running Laundry, single mode and and multi mode. 
 
@@ -104,7 +104,7 @@ Each of the `sectiontypes` have some limit regarding their operation.
 
 ## Arranging Spreadsheet Data
 
-The following applies to the both `sinlge` and `multi` subcommands.
+The following applies to the both `single` and `multi` sub-commands.
 
 ### `data_worksheet`
 
