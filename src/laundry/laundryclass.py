@@ -9,10 +9,12 @@ import pandas as pd
 
 old_structure_keys = ('sectiontype', 'sectioncontains', 'sectionstyle', 'titlestyle', 'sectionbreak', 'pagebreak',
                       'path')
-structure_keys = ('section_type', 'section_contains', 'section_style', 'title_style', 'section_break', 'page_break',
-                  'path')
-batch_keys = ('data_worksheet', 'structure_worksheet', 'header_row', 'remove_columns', 'drop_empty_rows',
-              'template_file', 'filter_rows', 'output_file')
+# Define headers for the batch and structure worksheets. These are fixed.
+expected_batch_headers = ['data_worksheet', 'structure_worksheet', 'header_row', 'remove_columns', 'drop_empty_rows',
+                          'template_file', 'filter_rows', 'output_file']
+expected_structure_headers = ['section_type', 'section_contains', 'section_style', 'title_style', 'section_break',
+                              'page_break', 'path']
+
 
 
 def split_str(data_str: str) -> List[str]:
@@ -319,12 +321,6 @@ class Laundry:
         self._structure: List[dict] = []
         self._batch: List[dict] = []
 
-        # Define headers for the batch and structure worksheets. These are fixed.
-        self.expected_batch_headers = ['data_worksheet', 'structure_worksheet', 'header_row', 'remove_columns',
-                                       'drop_empty_rows', 'template_file', 'filter_rows', 'output_file']
-        self.expected_structure_headers = ['section_type', 'section_contains', 'section_style', 'title_style', 'section_break',
-                                           'page_break', 'path']
-
         #  Step 3: Check that the data, structure and batch worksheet names passed exist within the file.
         try:
             print(f'Check 3: Worksheets exist in spreadsheet')
@@ -363,60 +359,47 @@ class Laundry:
 
         # Step 6. Check the batch data.
         try:
-            print(f'Check: Checking batch data.')
-            print(f'---------------------------')
+            print(f'<-- Checking batch worksheet data -->')
             self.check_batch_worksheet_data()
         except Exception as e:
             print(f'{e}')
-        print(f'---------------------------')
+        print(f'--> Batch data checked <--')
 
         # Step 6. Convert the batch DataFrame to a dict and store.
         self._batch_dict = self.batch_df.to_dict('records')
 
-        # Step 7. for every batch data in self._batch heck the corresponding structure and data details.
-        for t_batch_row in self._batch:
+        # Step 7.
+        # Every row of the the batch DataFrame contains information regarding an output file. For each row in the
+        # DataFrame produce the associated output file.
+        for t_batch_row in self.batch_df:
 
-            # Step 7.1. Open the structure worksheet as a DataFrame
-            t_batch_row_structure = t_batch_row['structure_worksheet']
-            print(f'Checking structure worksheet {t_batch_row_structure}')
-            t_structure_df: pd.DataFrame = self.excel_to_dataframe(self._washing_basket,
-                                                                   worksheet=t_batch_row_structure,
-                                                                   clean_header=True)
-            t_structure_headers = list(t_structure_df)
+            t_structure_worksheet = t_batch_row.structure_worksheet
+            t_data_worksheet = t_batch_row.data_worksheet
+            t_filter_data_columns = t_batch_row.filter_rows
+            self.t_structure_df = self.excel_to_dataframe(self._washing_basket, t_structure_worksheet, header_row=0,
+                                                          clean_header=True, drop_empty_rows=False)
+            self.t_data_df = self.excel_to_dataframe(self._washing_basket, t_data_worksheet,
+                                                     header_row=t_batch_row.header_row,
+                                                     remove_col=t_filter_data_columns, clean_header=True,
+                                                     drop_empty_rows=True)
+
+            # Step 8.
+            # Check the structure data.
             try:
-                for expected, actual in [(self.expected_structure_headers, t_structure_headers)]:
-                    self.compare_lists(expected, actual)
+                print(f'<-- Checking structure worksheet data -->')
+                self.check_structure_worksheet_data()
             except Exception as e:
-                print(e)
+                print(f'{e}')
+            print(f'--> Structure data checked <--')
 
-            # Step 7.2. Open the data worksheet as a DataFrame
-            # We do this before checking the structure dict to allow the data headers to be used
-            t_data_df: pd.DataFrame = self.excel_to_dataframe(self._washing_basket, worksheet=t_batch_row['data'],
-                                                              header_row=header_row, clean_header=True,
-                                                              drop_empty_rows=t_batch_dict['drop_empty_rows'])
-
-            # Step 7.3. Collect the structure and data headers. Check that the expected structure headers are in the
-            # structure worksheet.
-            t_data_headers = list(t_data_df)
-
-            if set(self.expected_structure_headers) <= set(t_structure_headers) is False:
-                raise ValueError(f'The structure headers {self.expected_structure_headers} were expected. The following '
-                                 f'headers were found: {t_structure_headers}')
-
-            # Step 7.4. Convert the structure spreadsheet to a dict and check its data.
-            t_structure_enum = enumerate(t_structure_df.to_dict('records'), 0)
-            for t_structure_row_int, t_structure_dict in t_structure_enum:
-                try:
-                    print(f'\tRow {t_structure_row_int}: {t_structure_dict}')
-                    self.check_structure_data(t_structure_dict, t_data_headers)
-                except Exception as e:
-                    print(f'{e}')
-                else:
-                    print(f'\t\tOk.')
-
-        t_data_dict: dict = t_data_df.to_dict('records')
-
-        # Step 4.6. Check file paths that
+            # Step 9.
+            # Check the data worksheet data.
+            try:
+                print(f'<-- Checking data worksheet data -->')
+                self.check_data_worksheet_data()
+            except Exception as e:
+                print(f'{e}')
+            print(f'--> Data worksheet data checked <--')
 
     @staticmethod
     def check_worksheets_basic(t_sheets_expected: list) -> bool:
@@ -428,11 +411,13 @@ class Laundry:
         if len(t_sheets_expected) == 0:
             raise ValueError(f'Either the "data" and "structure" worksheets, or the "batch" worksheet must be '
                              f'provided.')
+        else:
+            return True
 
     def check_batch_worksheet_data(self):
         """
-        Check the batch worksheet data is in the correct format. Data is checked as a DataFrame. The following checks are
-        made.
+        Check the batch worksheet data is in the correct format. Data is checked as a DataFrame. The following checks
+        are made.
         Check 1: Confirm expected batch headers exist in the batch worksheet.
         Check 2: Confirm Structure and data worksheets referenced in batch worksheet exist.
         Check 3: Confirm the template files exist and resolve the files.
@@ -444,13 +429,13 @@ class Laundry:
         """
         # Extract the data and structure worksheet names from the batch worksheet for error checking.
         t_batch_headers = list(self.batch_df)
-        t_batch_data_worksheets_expected = self.batch_df['data_worksheet'].to_list()
-        t_batch_structure_worksheets_expected = self.batch_df['structure_worksheet'].to_list()
+        t_batch_data_worksheets_expected = self.batch_df[:'data_worksheet'].to_list()
+        t_batch_structure_worksheets_expected = self.batch_df[:'structure_worksheet'].to_list()
 
         # Check 1.
         print(f'Check: Checking batch work sheet headers.')
         try:
-            for expected, actual in [(self.expected_batch_headers, t_batch_headers)]:
+            for expected, actual in [(expected_batch_headers, t_batch_headers)]:
                 self.compare_lists(expected, actual)
         except Exception as e:
             print(e)
@@ -485,8 +470,8 @@ class Laundry:
                 raise ValueError(f'The name of the output file has not been provided.')
 
             # Check 5.
-            if row.remove_columns is None:
-                self.batch_df.at[row.Index, 'remove_columns'] = False
+            if row.remove_columns.notna():
+                self.batch_df.at[row.Index, 'remove_columns'] = self.prepare_row_filters(row.remove_columns)
 
             # Check 6.
             if row.drop_empty_rows is None:
@@ -496,52 +481,74 @@ class Laundry:
             if row.header_row is None:
                 self.batch_df.at[row.Index, 'header_row'] = 0
 
-    def check_data_data(self):
+    def check_data_worksheet_data(self):
+        # todo: checking at this point should be limited to resolving photo paths and checking that the image exists.
         pass
 
-    def check_structure_data(self, structure_data: dict, data_headers: list):
+    def check_structure_worksheet_data(self):
         """
-        Cycle through the dictionary and run the following data checks. title_style is not checked
-        :param structure_data: The structure worksheet data.
-        :param data_headers: The data worksheet's headers. This is passed to allow the data headers to be checked prior
-        to parsing the data dictionary.
+        Check 1: Confirm expected batch headers exist in the batch worksheet.
+        Check 2: Confirm the expected section types exist.
+        Check 3: Confirm the section_contains values exist in the structure document.
+        Check 4: Check the photo file paths and resolve
+        Check 5: Check if section_break is None, set it to False.
+        Check 6: Check if page_break is None, set it to False.
         :return:
         """
-        for each in structure_data:
-            # Check 1.
-            # Check the header details are correct by checking whether the self.expected_structure_headers are a subset of
-            # structure_data_keys if True we can continue and ignore any additional headers that have been provided.
-            structure_data_keys = each.keys()
-            if set(self.expected_structure_headers) <= set(structure_data_keys) is False:
-                raise ValueError(f'The provided batch headers {structure_data_keys} do not match the required headers '
-                                 f'{self.expected_batch_headers}.')
-            # Check 2.
-            # Confirm that the section_type data is correct.
-            if each['section_type'] not in structure_keys:
-                raise ValueError(f'The section_type {each["section_type"]} is not correct.')
+        t_structure_headers = list(self.t_structure_df)
+        t_structure_section_types = self.t_structure_df[:'section_types']
+        t_structure_section_contains = self.t_structure_df[:'section_contains']
+        t_data_section_types = list(self.t_data_df)
 
-            # Check 3.
-            # Confirm that formatting data has been provided and is present.
-            if each['section_style'] is None:
-                raise ValueError(f'Worksheet "section_style" has not been provided.')
+        # Check 1
+        print(f'Check: Checking structure work sheet headers.')
+        try:
+            for expected, actual in [(expected_structure_headers, t_structure_headers)]:
+                self.compare_lists(expected, actual)
+        except Exception as e:
+            print(e)
+        print(f'\tStructure worksheets ok.')
 
-            # Check 3.
-            if each['section_type'].lower() is 'photo' and each['path'] not in invalid:
-                if not Path(each['path']).exists():
-                    raise ValueError(f'The provided path {each["path"]} does not exist.')
-                each['path'] = Path(each['path']).resolve()
+        # Check 2
+        print(f'Check: Checking structure worksheet section_types are correct.')
+        try:
+            for expected, actual in [(expected_structure_headers, t_structure_section_types)]:
+                self.compare_lists(expected, actual)
+        except Exception as e:
+            print(e)
+        print(f'\tsection_types are correct.')
 
-            # Check 4.
-            # Check that the data section referenced in the structure worksheet exists in the data worksheet.
-            if each['section_contains'] not in data_headers:
-                raise ValueError(f'{each["section_contains"]} is not defined within the structure worksheet.')
+        # Check 3
+        print(f'Check: Checking structure worksheet section_contain details are correct.')
+        try:
+            for expected, actual in [(t_data_section_types, t_structure_section_contains)]:
+                self.compare_lists(expected, actual)
+        except Exception as e:
+            print(e)
+        print(f'\tsection_contains details ok.')
+
+        for row in self.t_structure_df.itertuples():
+
+            # Check 4
+            print(f'\tChecking row {row.Index}')
+            if str(row.section_type).lower() is 'photo':
+                try:
+                    print(f'\t\tChecking file {row.path}.')
+                    t_photo_path = resolve_file_path(row.path)
+                    if t_photo_path.is_dir():
+                        self.batch_df.at[row.Index, 'path'] = t_photo_path
+                except ValueError as v:
+                    print(f'{v}. The path to the photos directory does not exist.')
+                except Exception as e:
+                    print(f'{e}')
 
             # Check 5.
-            for element in ['section_break', 'page_break']:
-                if str(each[element]).lower() in ['none', 'false']:
-                    each[element] = False
+            if row.section_break is None:
+                self.batch_df.at[row.Index, 'remove_columns'] = False
 
-        self._structure.append(structure_data)
+            # Check 6.
+            if row.page_break is None:
+                self.batch_df.at[row.Index, 'drop_empty_rows'] = False
 
     def excel_to_dataframe(self, io, worksheet: str, header_row: int = 0, remove_col: Iterable[str] = None,
                            clean_header: bool = False, drop_empty_rows: bool = False) -> data_frame:
@@ -571,7 +578,6 @@ class Laundry:
         :param filters:
         :return:
         """
-        # filters = str(filters)  # todo: Turned off for the moment. To confirm what the data is actually passed as.
         cleaned_filters = list()
         i = filters.splitlines()
         for each in i:
