@@ -370,7 +370,7 @@ class Laundry:
         # Step 7.
         # Every row of the the batch DataFrame contains information regarding an output file. For each row in the
         # DataFrame produce the associated output file.
-        for t_batch_row in self.batch_df:
+        for t_batch_row in self.batch_df.itertuples():
 
             t_structure_worksheet = t_batch_row.structure_worksheet
             t_data_worksheet = t_batch_row.data_worksheet
