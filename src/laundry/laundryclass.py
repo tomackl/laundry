@@ -377,6 +377,7 @@ class Laundry:
             t_filter_data_columns = t_batch_row.filter_rows
             self.t_structure_df = self.excel_to_dataframe(self._washing_basket, t_structure_worksheet, header_row=0,
                                                           clean_header=True, drop_empty_rows=False)
+            self.t_structure_photo_path: Dict[str, Path] = {}
             self.t_data_df = self.excel_to_dataframe(self._washing_basket, t_data_worksheet,
                                                      header_row=t_batch_row.header_row,
                                                      remove_col=t_filter_data_columns, clean_header=True,
@@ -399,6 +400,8 @@ class Laundry:
             except Exception as e:
                 print(f'{e}')
             print(f'--> Data worksheet data checked <--')
+
+            del self.t_structure_photo_path
 
     @staticmethod
     def check_worksheets_basic(t_sheets_expected: list) -> bool:
@@ -481,8 +484,66 @@ class Laundry:
                 self.batch_df.at[row.Index, 'header_row'] = 0
 
     def check_data_worksheet_data(self):
+        """
+        Check 1. Check that the photos exist in the directory. The check assumes that the first file name with the same
+        name is the correct file if no filename has been provided in the worksheet. The check assumes that all photo
+        names are unique regardless of photo directory.
+        :return:
+        """
         # todo: checking at this point should be limited to resolving photo paths and checking that the image exists.
-        pass
+        # Check 1. check the photo paths.
+        t_data_photos_actual: dict = {}
+        # Assuming that that there may be more than one directory containing photos for the worksheet loop through the
+        # each folder.
+        for column in self.t_structure_photo_path.keys():
+            # Grab the photo names from the data worksheet remembering that there may not be suffixes on the names.
+            t_photo_names_expected = self.t_data_df[:column]
+            t_found_photos: dict = {}
+
+            for each in photo_formats:
+                for file in self.t_structure_photo_path[column].glob('*' + each):
+                    t_found_photos[file.name] = file
+            for each in t_photo_names_expected:
+                try:
+                    t_data_photos_actual[each] = self.check_photo_paths(each, t_found_photos)
+                except Exception as e:
+                    print(e)
+
+    @staticmethod
+    def check_photo_paths(expected_photo: (Path, str), actual_photos: dict):
+        """
+        Check 1. Check that the photo could be an image file.
+        Check 2. If the expected_photo does not have a file extension then loop through photo_formats and see if the
+        file does exist.
+        Check 3. If the expected_photo does have a file extension then check that the file does exist.
+        The method will raise exceptions if the file is not found
+        :param expected_photo:
+        :param actual_photos:
+        :return:
+        """
+        # Check 1
+        photo = expected_photo.strip()
+        if Path(photo).suffix is not '' and Path(photo).suffix not in photo_formats:
+            raise ValueError(f'The data worksheet photo {photo} iss not been specified as a photo. Ensure that the'
+                             f' file format is one of the following formats {photo_formats}.')
+        # Check 2
+        elif Path(photo).suffix is '':
+            for ext in photo_formats:
+                try:
+                    if actual_photos[str(photo + ext)]:
+                        return actual_photos[str(photo + ext)]
+                except KeyError:
+                    pass
+            raise ValueError(f'The photo {photo} does not exist in the specified directory.')
+        # Check 3
+        elif Path(photo).suffix in photo_formats:
+            try:
+                if actual_photos[photo]:
+                    return actual_photos[photo]
+            except KeyError as k:
+                print(f'{k}. The photo {photo} does not exist in the directory.')
+
+        raise ValueError(f'The photo {photo} does not appear to exist in the directory.')
 
     def check_structure_worksheet_data(self):
         """
@@ -536,6 +597,8 @@ class Laundry:
                     t_photo_path = resolve_file_path(row.path)
                     if t_photo_path.is_dir():
                         self.batch_df.at[row.Index, 'path'] = t_photo_path
+                        # Add the photo path to the dictionary with the section_contains as the key
+                        self.t_structure_photo_path[row.section_contains] = t_photo_path
                 except ValueError as v:
                     print(f'{v}. The path to the photos directory does not exist.')
                 except Exception as e:
