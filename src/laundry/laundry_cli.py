@@ -1,7 +1,7 @@
 import click
 from laundry.constants import laundry_version
-from laundry.laundryclass import SingleLoad, Laundry
-from pathlib import Path, PurePath
+from laundry.laundryclass import Laundry
+from pathlib import Path
 
 
 @click.group()
@@ -58,7 +58,8 @@ def single(input_file: str, output_file: str, data: str, structure: str, templat
     wkst_data: str = data
     wkst_struct: str = structure
     template: str = template
-    Laundry.wash_single(file_input, file_output, wkst_data, wkst_struct, template, data_head)
+    Laundry(file_input, data_worksheet=wkst_data, structure_worksheet=wkst_struct, template_file=template,
+            header_row=data_head,output_fp=file_output)
 
 
 @cli.command()
@@ -77,4 +78,4 @@ def multi(input_file: (Path, str), batch: str):
     """
     file_input: Path = Path(input_file)
     wksht_batch: str = batch
-    Laundry.wash_multi(file_input, wksht_batch)
+    Laundry(file_input, batch_worksheet=wksht_batch)

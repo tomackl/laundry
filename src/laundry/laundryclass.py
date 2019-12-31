@@ -1,7 +1,7 @@
 """Main class for laundry. This is intended to replace the original laundry script."""
 
 from laundry.constants import data_frame, invalid, photo_formats
-from typing import Dict, List, Iterable, Tuple
+from typing import Dict, List, Iterable, Tuple, NamedTuple
 from docx import Document
 from docx.shared import Inches
 from pathlib import Path, PurePath
@@ -115,76 +115,87 @@ class SingleLoad:
     3. The output file will be created by the object.
     """
 
-    def __init__(self, structure_dict: Dict, data_dict: Dict, file_template: str, spreadsheet_fp: (Path, str),
-                 file_output_path: (Path, str)):
+    def __init__(self, structure_data: pd.DataFrame, data_data: pd.DataFrame, file_template: Path,
+                 file_output_path: Path):
+                 # file_output_path: (Path, str), spreadsheet_fp: (Path, str)):
         """
         # The method signature is based on the laundry.single_load() function. This calls self.format_docx()
-        :param structure_dict: A dictionary that defines the structure of the documentation. 
-        :param data_dict: A dictionary that contains the cell_data to be formatted.
+        :param structure_data: A dictionary that defines the structure of the documentation.
+        :param data_data: A dictionary that contains the cell_data to be formatted.
         :param file_template: The Word .docx file that contains the formatting styles to be used.
         :param spreadsheet_fp: The path to the directory containing the spreadsheet.
         :param file_output_path: The path to the output file location.
         """
-        self._structure: dict = structure_dict
-        self._data: dict = data_dict
-        self._file_template: str = file_template  # todo: This should probably be a Path()
-        self._spreadsheet_fp: (Path, str) = spreadsheet_fp
-        self._file_output: (Path, str) = file_output_path
+        self._structure: pd.DataFrame = structure_data
+        # self._structure: dict = structure_data
+        self._data: pd.DataFrame = data_data
+        # self._data: dict = data_data
+        self._file_template: Path = Path(file_template)  # todo: This should probably be a Path()
+        # self._spreadsheet_fp: (Path, str) = spreadsheet_fp
+        self._file_output: Path = Path(file_output_path)
         self._output_docx = Document()
         self._row_data: List[Dict] = list()
-        self.split_into_rows()
-
-    def split_into_rows(self):
-        """
-        Split self._data and pass each row to self.format_docx.
-        """
-        self._row_data = list()
-        for each in self._data:
-            self._row_data.append({each: self._data[each]})
+        # self.split_into_rows()
+        self.start_wash()
+        # self.format_docx()
+    # def split_into_rows(self):
+    #     """
+    #     Split self._data and pass each row to self.format_docx.
+    #     """
+    #     for row in self._row_data.itertuples():
+    #         self.format_docx(row)
+    #
+    #     # self._row_data = list()
+    #     # for each in self._data:
+    #     #     self._row_data.append({each: self._data[each]})
 
     def start_wash(self):
         """
         Start formatting the output document.
         """
-        for each in self._row_data:
-            self.format_docx(each)
+        for row in self._data.intertuples():
+        # for each in self._row_data:
+            self.format_docx(row)
+            # self.format_docx(each)
 
-    def format_docx(self, row: dict):
+    # def format_docx(self):
+    def format_docx(self, row: NamedTuple):
+    # def format_docx(self, row: dict):
         """
         This is factory method that calls the appropriate the information contained within document structure.
         :param row: dictionary containing the data_str to be formatted. This is a single row from the spreadsheet.
         :return:
         """
-        # row => each passed from self.start_wash()
-        # structdict => self._structure
-        # output_document => self._output_docx
-        # outputfile => self._file_template
-        # input_file_path => self._spreadsheet_fp
 
-        for element in self._structure:
-            ele_sect_contains: str = str(element['sectioncontains']).lower()
-            ele_sect_style: str = element['sectionstyle']
-            ele_sect_type: str = str(element['sectiontype']).lower()
-            ele_title_style: str = element['titlestyle']
-            ele_sect_break: bool = element['sectionbreak']
-            ele_page_break: bool = element['pagebreak']
+        row = row._asdict()
+        for element in self._structure.itertuples():
+        # for element in self._structure:
+            ele_sect_contains: str = str(element.section_contains).lower()
+            # ele_sect_contains: str = str(element['sectioncontains']).lower()
+            ele_sect_style: str = element.section_style
+            # ele_sect_style: str = element['sectionstyle']
+            ele_sect_type: str = str(element.section_type).lower()
+            # ele_sect_type: str = str(element['sectiontype']).lower()
+            ele_title_style: str = element.title_style
+            # ele_title_style: str = element['titlestyle']
+            ele_sect_break: bool = element.section_break
+            # ele_sect_break: bool = element['sectionbreak']
+            ele_page_break: bool = element.page_break
+            # ele_page_break: bool = element['pagebreak']
             ele_row_contains = row[ele_sect_contains]
 
-            if ele_sect_type in ('heading', 'para', 'paragraph'):
+            if ele_sect_type in ['heading', 'para', 'paragraph']:
                 self.insert_paragraph(str(ele_row_contains).lower(), title=ele_sect_contains.title(),
                                       section_style=ele_sect_style, title_style=ele_title_style)
 
             elif ele_sect_type == 'table':
                 table_col_hdr = split_str(ele_sect_contains)
                 sorted_row = sort_table_data(row, table_col_hdr)
-                self.insert_table(len(table_col_hdr),
-                                  len(sorted_row),
-                                  sorted_row,
-                                  section_style=ele_sect_style,
-                                  )
+                self.insert_table(len(table_col_hdr), len(sorted_row), sorted_row, section_style=ele_sect_style)
 
             elif ele_sect_type == 'photo':
                 q = confirm_directory_path([self._spreadsheet_fp, element['path']])
+                # todo: allow for photo names having to be split
                 if str(ele_row_contains).lower() not in ['no photo', 'none', 'nan', '-']:
                     photo = split_str(ele_row_contains)
                     for each in photo:
@@ -401,7 +412,12 @@ class Laundry:
                 print(f'{e}')
             print(f'--> Data worksheet data checked <--')
 
+            SingleLoad(self.t_structure_df, self.t_data_df,
+            # SingleLoad(self.t_structure_df.to_dict('records'), self.t_data_df.to_dict('records'),
+                       t_batch_row.template_file, t_batch_row.output_file)
+                       # t_batch_row.template_file, t_batch_row.output_file)
             del self.t_structure_photo_path
+
 
     @staticmethod
     def check_worksheets_basic(t_sheets_expected: list) -> bool:
@@ -431,8 +447,8 @@ class Laundry:
         """
         # Extract the data and structure worksheet names from the batch worksheet for error checking.
         t_batch_headers = list(self.batch_df)
-        t_batch_data_worksheets_expected = self.batch_df[:'data_worksheet'].to_list()
-        t_batch_structure_worksheets_expected = self.batch_df[:'structure_worksheet'].to_list()
+        t_batch_data_worksheets_expected = self.batch_df[['data_worksheet']].to_list()
+        t_batch_structure_worksheets_expected = self.batch_df[['structure_worksheet']].to_list()
 
         # Check 1.
         print(f'Check: Checking batch work sheet headers.')
@@ -490,27 +506,33 @@ class Laundry:
         names are unique regardless of photo directory.
         :return:
         """
-        # todo: checking at this point should be limited to resolving photo paths and checking that the image exists.
         # Check 1. check the photo paths.
-        t_data_photos_actual: dict = {}
+        t_photos_found: Dict[str, Path] = {}
         # Assuming that that there may be more than one directory containing photos for the worksheet loop through the
         # each folder.
-        for column in self.t_structure_photo_path.keys():
-            # Grab the photo names from the data worksheet remembering that there may not be suffixes on the names.
-            t_photo_names_expected = self.t_data_df[:column]
-            t_found_photos: dict = {}
+        columns = self.t_structure_photo_path.keys()
+        for col in columns:
+            # Grab the photos stored in the folders and store their paths in dictionary. Store them in the dictionary
+            # with their name minus the file extension as the key.
+            for file_ext in photo_formats:
+                for file in self.t_structure_photo_path[col].glob('*' + file_ext):
+                    t_photos_found[file.name] = file
 
-            for each in photo_formats:
-                for file in self.t_structure_photo_path[column].glob('*' + each):
-                    t_found_photos[file.name] = file
-            for each in t_photo_names_expected:
-                try:
-                    t_data_photos_actual[each] = self.check_photo_paths(each, t_found_photos)
-                except Exception as e:
-                    print(e)
+        # For each of the columns containing photos loop through the self.t_data_df and replace the file name with the
+        # path.
+            for row in pd.DataFrame(self.t_data_df[col]).itertuples():
+                t_row = row._asdict()
+                t_row_photo = []
+                if str(t_row[col]).lower() not in ['no photo', 'none', 'nan', '-']:
+                    for t in split_str(t_row[col]):
+                        try:
+                            t_row_photo.append(self.check_photo_paths(t, t_photos_found))
+                        except Exception as e:
+                            print(e)
+                self.t_data_df[t_row['Index'], col] = t_row_photo
 
     @staticmethod
-    def check_photo_paths(expected_photo: (Path, str), actual_photos: dict):
+    def check_photo_paths(expected_photo: (Path, str), actual_photos: dict) -> Path:
         """
         Check 1. Check that the photo could be an image file.
         Check 2. If the expected_photo does not have a file extension then loop through photo_formats and see if the
@@ -524,14 +546,15 @@ class Laundry:
         # Check 1
         photo = expected_photo.strip()
         if Path(photo).suffix is not '' and Path(photo).suffix not in photo_formats:
-            raise ValueError(f'The data worksheet photo {photo} iss not been specified as a photo. Ensure that the'
+            raise ValueError(f'The data worksheet photo {photo} is not been specified as a photo. Ensure that the'
                              f' file format is one of the following formats {photo_formats}.')
         # Check 2
         elif Path(photo).suffix is '':
             for ext in photo_formats:
                 try:
-                    if actual_photos[str(photo + ext)]:
-                        return actual_photos[str(photo + ext)]
+                    t_photo_name = str(photo + ext)
+                    if actual_photos[t_photo_name]:
+                        return Path(actual_photos[t_photo_name]).resolve(strict=True)
                 except KeyError:
                     pass
             raise ValueError(f'The photo {photo} does not exist in the specified directory.')
@@ -539,7 +562,7 @@ class Laundry:
         elif Path(photo).suffix in photo_formats:
             try:
                 if actual_photos[photo]:
-                    return actual_photos[photo]
+                    return Path(actual_photos[photo]).resolve(strict=True)
             except KeyError as k:
                 print(f'{k}. The photo {photo} does not exist in the directory.')
 
@@ -556,8 +579,8 @@ class Laundry:
         :return:
         """
         t_structure_headers = list(self.t_structure_df)
-        t_structure_section_types = self.t_structure_df[:'section_types']
-        t_structure_section_contains = self.t_structure_df[:'section_contains']
+        t_structure_section_types = self.t_structure_df['section_types']
+        t_structure_section_contains = self.t_structure_df['section_contains']
         t_data_section_types = list(self.t_data_df)
 
         # Check 1
@@ -612,7 +635,8 @@ class Laundry:
             if row.page_break is None:
                 self.batch_df.at[row.Index, 'drop_empty_rows'] = False
 
-    def excel_to_dataframe(self, io, worksheet: str, header_row: int = 0, remove_col: Iterable[str] = None,
+    @staticmethod
+    def excel_to_dataframe(io, worksheet: str, header_row: int = 0, remove_col: Iterable[str] = None,
                            clean_header: bool = False, drop_empty_rows: bool = False) -> data_frame:
         """
         Open and perform basic cell_data cleaning on a single excel work worksheet.
@@ -634,7 +658,8 @@ class Laundry:
             df = df.dropna(thresh=2)
         return df
 
-    def prepare_row_filters(self, filters: str) -> List[Tuple[str, int]]:
+    @staticmethod
+    def prepare_row_filters(filters: str) -> List[Tuple[str, int]]:
         """
         Split the passed string into a list of Tuples taking the form (column_name, filter_keyword)
         :param filters:
@@ -648,7 +673,8 @@ class Laundry:
             cleaned_filters.append((column_header, column_keyword))
         return cleaned_filters
 
-    def compare_lists(self, expected_list, actual_list):
+    @staticmethod
+    def compare_lists(expected_list, actual_list):
         if set(expected_list) <= set(actual_list) is False:
             raise ValueError(f'The provided headers {actual_list} do not match the required headers '
                              f'{expected_list}.')
