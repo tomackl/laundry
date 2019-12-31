@@ -59,7 +59,7 @@ def single(input_file: str, output_file: str, data: str, structure: str, templat
     wkst_struct: str = structure
     template: str = template
     Laundry(file_input, data_worksheet=wkst_data, structure_worksheet=wkst_struct, template_file=template,
-            header_row=data_head,output_fp=file_output)
+            header_row=data_head, output_file=file_output)
 
 
 @cli.command()

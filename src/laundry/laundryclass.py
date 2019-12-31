@@ -35,9 +35,9 @@ def split_str(data_str: str) -> List[str]:
 
 def sort_table_data(record: Dict, header: List[str], format_title: bool = True) -> List[Tuple]:
     """
-    Take a dictionary and split in to a list of tuples containing the 'keys' cell_data defined in 'header' as the first tuple
-    and the associated values as the second. The function will return a list containing two equal length tuples. The
-    function assumes that the cell_data contained in record and header is in the correct order.
+    Take a dictionary and split in to a list of tuples containing the 'keys' cell_data defined in 'header' as the
+    first tuple and the associated values as the second. The function will return a list containing two equal length
+    tuples. The function assumes that the cell_data contained in record and header is in the correct order.
     :param record: The dictionary containing the cell_data.
     :param header: The keys that defined the key-values to be extracted.
     :param format_title: If True make the header string title case.
@@ -63,30 +63,17 @@ def remove_underscore(data_str: str) -> str:
     return data_str.replace('_', ' ')
 
 
-# def confirm_directory_path(filepath: List[str]) -> (Path, str):
-#     """
-#     Convert the contents of the passed list into a Path. This function assumes
-#     that the sum of the passed list will be a single path to a directory.
-#     :param filepath: a list of path names as string
-#     :return: Path
-#     """
-#     path = PurePath()
-#     for each in filepath:
-#         q = PurePath(each.replace('\\', '/').strip('/'))
-#         path = path / Path(q.as_posix())
-#     r = Path(path)
-#     if r.is_dir():
-#         return r
-#     return 'Incorrect path.'
-
-
 def resolve_file_path(path: (Path, str)) -> (Path, Exception):
     """
     Resolve the passed filepath returning as a Path() or an exception.
     :return:
     """
-    p = Path(path)
-    return p.resolve(strict=True)
+    q = str(path).replace('\\', '/')
+    try:
+        p = Path(q).resolve(strict=True)
+        return p
+    except Exception as e:
+        print(f'{e}')
 
 
 def values_exist(expected: set, actual: set) -> bool:
@@ -118,7 +105,6 @@ class SingleLoad:
 
     def __init__(self, structure_data: pd.DataFrame, data_data: pd.DataFrame, file_template: Path,
                  file_output_path: Path):
-                 # file_output_path: (Path, str), spreadsheet_fp: (Path, str)):
         """
         # The method signature is based on the laundry.single_load() function. This calls self.format_docx()
         :param structure_data: A dictionary that defines the structure of the documentation.
@@ -129,24 +115,19 @@ class SingleLoad:
         self._structure: pd.DataFrame = structure_data
         self._data: pd.DataFrame = data_data
         self._file_template: Document() = Document(file_template)
-        # self._file_template: Path = Path(file_template)
         self._file_output: Path = Path(file_output_path)
-        # self._output_docx = Document()
         self._row_data: List[Dict] = list()
         self.start_wash()
+        self.issue_document()
 
     def start_wash(self):
         """
         Start formatting the output document.
         """
         for row in self._data.itertuples():
-        # for each in self._row_data:
             self.format_docx(row)
-            # self.format_docx(each)
 
-    # def format_docx(self):
     def format_docx(self, row: NamedTuple):
-    # def format_docx(self, row: dict):
         """
         This is factory method that calls the appropriate the information contained within document structure.
         :param row: dictionary containing the data_str to be formatted. This is a single row from the spreadsheet.
@@ -161,18 +142,9 @@ class SingleLoad:
             title_style_element: str = str(structure_element.title_style)
             sect_break_element: bool = structure_element.section_break
             page_break_element: bool = structure_element.page_break
-            # todo: The line below is the problem and needs to be fixed...
-            row_contains = row[sect_contains_element]
-        # for element in self._structure:
-            # ele_sect_contains: str = str(element['sectioncontains']).lower()
-            # ele_sect_style: str = element['sectionstyle']
-            # ele_sect_type: str = str(element['sectiontype']).lower()
-            # ele_title_style: str = element['titlestyle']
-            # ele_sect_break: bool = element['sectionbreak']
-            # ele_page_break: bool = element['pagebreak']
 
             if sect_type_element in ['heading', 'para', 'paragraph']:
-                self.insert_paragraph(str(row_contains).lower(), title=sect_contains_element.title(),
+                self.insert_paragraph(str(row[sect_contains_element]).lower(), title=sect_contains_element.title(),
                                       section_style=sect_style_element, title_style=title_style_element)
 
             elif sect_type_element == 'table':
@@ -181,19 +153,17 @@ class SingleLoad:
                 self.insert_table(len(table_col_hdr), len(sorted_row), sorted_row, section_style=sect_style_element)
 
             elif sect_type_element == 'photo':
-                if row_contains is not 'None':
-                    for each in row_contains:
+                if row[sect_contains_element] is not 'None':
+                    for each in row[sect_contains_element]:
                         self.insert_photo(each, 4)
             else:
                 print('Valid section header was not found.')
 
             if sect_break_element is True:
                 self.insert_paragraph('')
-                # self.insert_paragraph(self._output_docx, '')
 
             if page_break_element is True:
                 self._file_template.add_page_break()
-                # self._output_docx.add_page_break()
 
     def insert_paragraph(self, text: str, title: str = None, section_style: str = None,
                          title_style: str = None):
@@ -205,17 +175,14 @@ class SingleLoad:
         :param title_style: title style. Use this _or_ title_level.
         :return:
         """
-        text = text.splitlines()
-        if text == '':
-            self._file_template.add_paragraph(text)
-            # self._output_docx.add_paragraph(text)
+        split_text = text.splitlines()
+        if len(split_text) == 0:
+            self._file_template.add_paragraph(split_text)
         else:
             if (title is not None) and (str(title_style) != 'nan'):
                 self._file_template.add_paragraph(remove_underscore(title), style=title_style)
-                # self._output_docx.add_paragraph(remove_underscore(title), style=title_style)
-            for each in text:
+            for each in split_text:
                 self._file_template.add_paragraph(each, style=section_style)
-                # self._output_docx.add_paragraph(each, style=section_style)
 
     def insert_table(self, cols: int, rows: int, data: List[Iterable[str]], section_style: str = None,
                      autofit_table: bool = True):
@@ -230,7 +197,7 @@ class SingleLoad:
         :param autofit_table: autofit the table to the page width.
         :return:
         """
-        table = self._output_docx.add_table(rows=rows, cols=cols, style=section_style)
+        table = self._file_template.add_table(rows=rows, cols=cols, style=section_style)
         table.autofit = autofit_table
         cell_data = enumerate(data, 0)
         for i, cell_contents in cell_data:
@@ -244,14 +211,14 @@ class SingleLoad:
         :param width: width of the image in Inches
         :return:
         """
-        self._output_docx.add_picture(photo, width=Inches(width))
+        self._file_template.add_picture(str(photo), width=Inches(width))
 
     def issue_document(self):
         """
         Output the file.
         :return:
         """
-        self._file_template.save(self._output_docx)
+        self._file_template.save(self._file_output)
 
 
 class Laundry:
@@ -259,7 +226,7 @@ class Laundry:
     def __init__(self, input_fp: Path, data_worksheet: str = None, structure_worksheet: str = None,
                  batch_worksheet: str = None, header_row: int = 0, remove_columns: str = None,
                  drop_empty_rows: bool = None, template_file: str = None, filter_rows: str = None,
-                 output_fp: (Path, str) = None):
+                 output_file: (Path, str) = None):
         """
         Instantiating the class will run error checking on the passed information, checking for the following steps:
         1. A basic check that worksheet names have been passed.
@@ -279,9 +246,8 @@ class Laundry:
         cells. If this is left as None it will be automatically set to True for the data worksheet.
         :param template_file: 
         :param filter_rows: 
-        :param output_fp: 
+        :param output_file:
         """
-
         # Step 1: Basic data checking.
         t_sheets_expected = remove_from_iterable([data_worksheet, structure_worksheet, batch_worksheet], None)
         print(f'Check: Worksheets are present.')
@@ -325,11 +291,11 @@ class Laundry:
         # Step 4.1. If all the expected command line parameters are set to the defaults assume that the a batch
         #   approach has been used. We do _not_ test for batch since this will be tested for later.
         input_arg = [data_worksheet, structure_worksheet, header_row, remove_columns, drop_empty_rows, template_file,
-                     filter_rows, output_fp]
+                     filter_rows, output_file]
 
         self.batch_df: pd.DataFrame = pd.DataFrame(columns=['data_worksheet', 'structure_worksheet', 'header_row',
                                                             'remove_columns', 'drop_empty_rows', 'template_file',
-                                                            'output_fp'])
+                                                            'output_file'])
         # Step 4.2. Since the default values for the input args are all 'None' or 0, if we remove these values from the
         #   list, if the list's length is greater than 0 then there is a chance that a single wash is required. We don't
         #   test for the input file path since this has already occurred.
@@ -343,7 +309,7 @@ class Laundry:
             t_batch_dict = {'data_worksheet': [data_worksheet], 'structure_worksheet': [structure_worksheet],
                             'header_row': [header_row], 'remove_columns': [remove_columns],
                             'drop_empty_rows': [drop_empty_rows], 'template_file': [template_file],
-                            'filter_rows': [filter_rows], 'output_fp': [output_fp]}
+                            'filter_rows': [filter_rows], 'output_file': [output_file]}
             self.batch_df = pd.DataFrame.from_dict(data=t_batch_dict)
         # Step 5. If batch information passed as a worksheet clean and sort the batch data.
         else:
@@ -405,22 +371,9 @@ class Laundry:
                 print(f'{e}')
 
             SingleLoad(self.t_structure_df, self.t_data_df,
-                       t_batch_row.template_file, t_batch_row.output_fp)
+                       t_batch_row.template_file, t_batch_row.output_file)
 
             del self.t_structure_photo_path
-
-    # @staticmethod
-    # def check_worksheets_basic(t_sheets_expected: list) -> bool:
-    #     """
-    #
-    #     :param t_sheets_expected:
-    #     :return:
-    #     """
-    #     if len(t_sheets_expected) == 0:
-    #         raise ValueError(f'Either the "data" and "structure" worksheets, or the "batch" worksheet must be '
-    #                          f'provided.')
-    #     else:
-    #         return True
 
     def check_batch_worksheet_data(self):
         """
@@ -464,26 +417,39 @@ class Laundry:
             print(f'\tRow {row.Index}: Check file {row.template_file}.')
             try:
                 if row.template_file not in invalid:
-                    fp = resolve_file_path(row.template_file)
-                    self.batch_df.at[row.Index, 'template_file'] = fp
-                    print(f'\t\t{fp}')
+                    fp_template = resolve_file_path(row.template_file)
+                    self.batch_df.at[row.Index, 'template_file'] = fp_template
+                    print(f"\t\t{self.batch_df.at[row.Index, 'template_file']}")
             except ValueError as v:
                 print(f'{v}. The template file does not exist.')
             except Exception as e:
                 print(f'{e}')
 
             # Check 4.
-            print(f'\tCheck output filename.')
-            if str(row.output_fp) in invalid:
+            print(f'\tCheck output filename {row.output_file}.')
+            if str(row.output_file) in invalid:
                 raise ValueError(f'The name of the output file has not been provided.')
+            try:
+                fp_name = str(Path(row.output_file).name)
+                fp_output = Path(resolve_file_path(Path(row.output_file).parent)).joinpath(fp_name)
+                self.batch_df.at[row.Index, 'output_file'] = fp_output
+                print(f"\t\t{self.batch_df.at[row.Index, 'output_file']}")
+            except FileNotFoundError as f:
+                print(f'{f}. File {row.output_file} could not be resolved.')
+            except Exception as e:
+                print(f'{e}')
             print(f'\t\tOK')
+
             # Check 5.
-            if row.remove_columns is not None:
-                self.batch_df.at[row.Index, 'remove_columns'] = self.prepare_row_filters(row.remove_columns)
+            if str(row.filter_rows).lower() not in invalid:
+            # if row.remove_columns is not None:
+                print(f'>>>>{row.filter_rows}')
+                self.batch_df.at[row.Index, 'remove_columns'] = self.prepare_row_filters(row.filter_rows)
+                # self.batch_df.at[row.Index, 'remove_columns'] = self.prepare_row_filters(row.remove_columns)
 
             # Check 6.
-            if row.drop_empty_rows is None:
-                self.batch_df.at[row.Index, 'drop_empty_rows'] = False
+            if row.drop_empty_columns is None:
+                self.batch_df.at[row.Index, 'drop_empty_columns'] = False
 
             # Check 7
             if row.header_row is None:
@@ -582,6 +548,8 @@ class Laundry:
             # the path.
             t_df_rows = self.t_data_df.itertuples()
             for row in t_df_rows:
+                # The row below must remain in this position
+                col = str(col).lower()
                 t_row = row._asdict()
                 t_row_photo = []
                 print(f'\tRow {row.Index}:')
@@ -595,7 +563,7 @@ class Laundry:
                     self.t_data_df.at[t_row['Index'], col] = t_row_photo
                     print(f'\t\t{t_row_photo}')
                 elif str(t_row[col]).lower() in ['no photo', 'none', 'nan', '-']:
-                    self.t_data_df[t_row['Index'], col] = 'None'
+                    self.t_data_df.at[t_row['Index'], col] = 'None'
 
     @staticmethod
     def check_photo_paths(expected_photo: (Path, str), actual_photos: dict) -> Path:
@@ -648,13 +616,23 @@ class Laundry:
         :param drop_empty_rows: If True remove empty rows.
         :return:
         """
+        # df = pd.read_excel(io, worksheet, header_row, dtype=object)
         df = pd.read_excel(io, worksheet, header_row)
         if remove_col is not None:
-            df = df.remove_columns(remove_col)
+            try:
+                df = df.remove_columns(remove_col)
+            except KeyError as k:
+                print(f'{k}')
         if clean_header is not False:
-            df = df.clean_names()
+            try:
+                df = df.clean_names()
+            except KeyError as k:
+                print(f'{k}')
         if drop_empty_rows is True:
-            df = df.dropna(thresh=2)
+            try:
+                df = df.dropna(thresh=2)
+            except KeyError as k:
+                print(f'{k}')
         return df
 
     @staticmethod
@@ -664,11 +642,16 @@ class Laundry:
         :param filters:
         :return:
         """
+        # todo: this method requires tidying up.
         cleaned_filters = list()
-        i = filters.splitlines()
+        i =[]
+        cleaned_filters = []
+        if '\n' in filters:
+            i = filters.splitlines()
         for each in i:
-            column_header, column_keyword = each.split(':')
-            column_keyword = column_keyword.split(',').strip()
+            t_hdr, t_kw = each.split(':')
+            # column_header, column_keyword = each.split(':')
+            # column_keyword = column_keyword.split(',').strip()
             cleaned_filters.append((column_header, column_keyword))
         return cleaned_filters
 

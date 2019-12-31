@@ -1,0 +1,2 @@
+clear
+laundry single  -t ../../resources/templates/CONVERSION_TEMPLATE.docx -dh=5 ../../resources/input_files/test_spreadsheet_laundryclass.xlsm ../../resources/output_files/run_laundry_script.docx

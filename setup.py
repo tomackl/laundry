@@ -11,7 +11,7 @@ setup(
     url='https://github.com/tomackl/laundry',
     description='Folding spreadsheets into neat shapes.',
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type="split_text/markdown",
     python_requires=">=3.6",
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
