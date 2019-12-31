@@ -1,1 +1,2 @@
-from laundry.laundry import *
+from laundry.laundryclass import *
+from laundry.laundry_cli import *

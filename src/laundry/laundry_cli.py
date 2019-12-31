@@ -15,7 +15,7 @@ def cli():
 
 
 @cli.command()
-@click.option('--cell_data-worksheet', '-dw', 'cell_data',
+@click.option('--data-worksheet', '-dw', 'data',
               default='Master List',
               help='Name of the worksheet containing the cell_data to be converted into a '
                    'word document. '
@@ -31,7 +31,7 @@ def cli():
               help='Name of the worksheet containing the cell_data to format the structure '
                    'of the outfile document. The default is "_structure".'
               )
-@click.option('--cell_data-header', '-dh', 'data_head',
+@click.option('--data-header', '-dh', 'data_head',
               default=0,
               type=int,
               help="The row number of the cell_data worksheet's row containing the column "

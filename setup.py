@@ -1,12 +1,11 @@
 from setuptools import setup, find_packages
-from laundry.constants import laundry_version
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
     name='laundry',
-    version=laundry_version,
+    version='2019.0.8',
     author='Tom Ackland',
     author_email='ackland.thomas@gmail.com',
     url='https://github.com/tomackl/laundry',
@@ -25,7 +24,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'laundry = laundry:cli',
+            'laundry = laundry.laundry_cli:cli',
         ],
     },
     classifiers=[
