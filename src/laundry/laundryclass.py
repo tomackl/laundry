@@ -11,8 +11,8 @@ import pandas as pd
 old_structure_keys = ('sectiontype', 'sectioncontains', 'sectionstyle', 'titlestyle', 'sectionbreak', 'pagebreak',
                       'path')
 # Define headers for the batch and structure worksheets. These are fixed.
-expected_batch_headers = ['data_worksheet', 'structure_worksheet', 'header_row', 'remove_columns', 'drop_empty_rows',
-                          'template_file', 'filter_rows', 'output_file']
+expected_batch_headers = ['data_worksheet', 'structure_worksheet', 'header_row', 'drop_empty_rows', 'template_file',
+                          'filter_rows', 'output_file']
 expected_structure_headers = ['section_type', 'section_contains', 'section_style', 'title_style', 'section_break',
                               'page_break', 'path']
 
@@ -91,6 +91,13 @@ def remove_from_iterable(values: Iterable, *args) -> List:
         if each not in args:
             data.append(each)
     return data
+
+
+def strip_whitespace(wht_spc: List) -> List:
+    i = []
+    for each in wht_spc:
+        i.append(each.strip())
+    return i
 
 
 class SingleLoad:
@@ -224,9 +231,8 @@ class SingleLoad:
 class Laundry:
 
     def __init__(self, input_fp: Path, data_worksheet: str = None, structure_worksheet: str = None,
-                 batch_worksheet: str = None, header_row: int = 0, remove_columns: str = None,
-                 drop_empty_rows: bool = None, template_file: str = None, filter_rows: str = None,
-                 output_file: (Path, str) = None):
+                 batch_worksheet: str = None, header_row: int = 0, drop_empty_rows: bool = None,
+                 template_file: str = None, filter_rows: str = None, output_file: (Path, str) = None):
         """
         Instantiating the class will run error checking on the passed information, checking for the following steps:
         1. A basic check that worksheet names have been passed.
@@ -241,7 +247,6 @@ class Laundry:
         :param structure_worksheet: The name of the worksheet containing the output document's structure.
         :param batch_worksheet: The name of the worksheet containing the batch data.
         :param header_row: 
-        :param remove_columns: 
         :param drop_empty_rows: An explicit tag to drop empty rows from the worksheet if they contain two or more empty
         cells. If this is left as None it will be automatically set to True for the data worksheet.
         :param template_file: 
@@ -290,12 +295,11 @@ class Laundry:
         #   dictionary. Error checking will be completed later.
         # Step 4.1. If all the expected command line parameters are set to the defaults assume that the a batch
         #   approach has been used. We do _not_ test for batch since this will be tested for later.
-        input_arg = [data_worksheet, structure_worksheet, header_row, remove_columns, drop_empty_rows, template_file,
-                     filter_rows, output_file]
+        input_arg = [data_worksheet, structure_worksheet, header_row, drop_empty_rows, template_file, filter_rows,
+                     output_file]
 
         self.batch_df: pd.DataFrame = pd.DataFrame(columns=['data_worksheet', 'structure_worksheet', 'header_row',
-                                                            'remove_columns', 'drop_empty_rows', 'template_file',
-                                                            'output_file'])
+                                                            'drop_empty_rows', 'template_file', 'output_file'])
         # Step 4.2. Since the default values for the input args are all 'None' or 0, if we remove these values from the
         #   list, if the list's length is greater than 0 then there is a chance that a single wash is required. We don't
         #   test for the input file path since this has already occurred.
@@ -307,9 +311,9 @@ class Laundry:
 
             # Step 4.3. Turn the command line arguments into a dict and store temporarily.
             t_batch_dict = {'data_worksheet': [data_worksheet], 'structure_worksheet': [structure_worksheet],
-                            'header_row': [header_row], 'remove_columns': [remove_columns],
-                            'drop_empty_rows': [drop_empty_rows], 'template_file': [template_file],
-                            'filter_rows': [filter_rows], 'output_file': [output_file]}
+                            'header_row': [header_row], 'drop_empty_rows': [drop_empty_rows],
+                            'template_file': [template_file], 'filter_rows': [filter_rows],
+                            'output_file': [output_file]}
             self.batch_df = pd.DataFrame.from_dict(data=t_batch_dict)
         # Step 5. If batch information passed as a worksheet clean and sort the batch data.
         else:
@@ -344,8 +348,7 @@ class Laundry:
             self.t_structure_photo_path: Dict[str, Path] = {}
             self.t_data_df = self.excel_to_dataframe(self._washing_basket, t_data_worksheet,
                                                      header_row=t_batch_row.header_row,
-                                                     remove_col=t_filter_data_columns, clean_header=True,
-                                                     drop_empty_rows=True)
+                                                     clean_header=True, drop_empty_rows=True)
 
             # Step 8.
             # Check the structure data.
@@ -383,7 +386,7 @@ class Laundry:
         Check 2: Confirm Structure and data worksheets referenced in batch worksheet exist.
         Check 3: Confirm the template files exist and resolve the files.
         Check 4: Confirm an output filename has been provided.
-        Check 5: Check if remove_column is None, set it to False.
+        Check 5: Check if filter_rows
         Check 6: Check if drop_empty_rows is None, set it to False.
         Check 7: Check if header_row is None, set it to 0.
         :return:
@@ -442,10 +445,7 @@ class Laundry:
 
             # Check 5.
             if str(row.filter_rows).lower() not in invalid:
-            # if row.remove_columns is not None:
-                print(f'>>>>{row.filter_rows}')
-                self.batch_df.at[row.Index, 'remove_columns'] = self.prepare_row_filters(row.filter_rows)
-                # self.batch_df.at[row.Index, 'remove_columns'] = self.prepare_row_filters(row.remove_columns)
+                self.batch_df.at[row.Index, 'filter_rows'] = self.prepare_row_filters(row.filter_rows)
 
             # Check 6.
             if row.drop_empty_columns is None:
@@ -517,11 +517,11 @@ class Laundry:
 
             # Check 5.
             if row.section_break is None:
-                self.batch_df.at[row.Index, 'remove_columns'] = False
+                self.batch_df.at[row.Index, 'section_break'] = False
 
             # Check 6.
             if row.page_break is None:
-                self.batch_df.at[row.Index, 'drop_empty_rows'] = False
+                self.batch_df.at[row.Index, 'page_break'] = False
 
     def check_data_worksheet_data(self):
         """
@@ -603,8 +603,8 @@ class Laundry:
         raise ValueError(f'The photo {photo} does not appear to exist in the directory.')
 
     @staticmethod
-    def excel_to_dataframe(io, worksheet: str, header_row: int = 0, remove_col: Iterable[str] = None,
-                           clean_header: bool = False, drop_empty_rows: bool = False) -> data_frame:
+    def excel_to_dataframe(io, worksheet: str, header_row: int = 0, clean_header: bool = False,
+                           drop_empty_rows: bool = False) -> data_frame:
         """
         Open and perform basic cell_data cleaning on a single excel work worksheet.
         :param io: The Excel file to be read.
@@ -616,13 +616,7 @@ class Laundry:
         :param drop_empty_rows: If True remove empty rows.
         :return:
         """
-        # df = pd.read_excel(io, worksheet, header_row, dtype=object)
         df = pd.read_excel(io, worksheet, header_row)
-        if remove_col is not None:
-            try:
-                df = df.remove_columns(remove_col)
-            except KeyError as k:
-                print(f'{k}')
         if clean_header is not False:
             try:
                 df = df.clean_names()
@@ -642,18 +636,17 @@ class Laundry:
         :param filters:
         :return:
         """
-        # todo: this method requires tidying up.
-        cleaned_filters = list()
-        i =[]
-        cleaned_filters = []
+        filtered_list = []
+        i = []
         if '\n' in filters:
-            i = filters.splitlines()
+            i = str(filters).splitlines()
+        else:
+            i.append(filters)
         for each in i:
-            t_hdr, t_kw = each.split(':')
-            # column_header, column_keyword = each.split(':')
-            # column_keyword = column_keyword.split(',').strip()
-            cleaned_filters.append((column_header, column_keyword))
-        return cleaned_filters
+            col, b = each.split(':')
+            col_kw = strip_whitespace(b.split(','))
+            filtered_list.append((col, col_kw))
+        return filtered_list
 
     @staticmethod
     def compare_lists(expected_list, actual_list):
