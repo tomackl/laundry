@@ -5,7 +5,6 @@
 3. Allow for columns to be used more in the same table. E.g. Allow for the insertion of blank cells.
 4. Allow multiple paths to be added to the structure file for multiply storage locations.
 5. Allow headers not to be applied to tables.
-6. Allow the template folder to stored somewhere other than the root directory.
-7.
+6.
  
  

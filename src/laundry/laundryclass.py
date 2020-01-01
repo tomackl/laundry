@@ -1,15 +1,13 @@
 """Main class for laundry. This is intended to replace the original laundry script."""
 
 from laundry.constants import data_frame, invalid, photo_formats
-from typing import Dict, List, Iterable, Tuple, NamedTuple
+from typing import Dict, List, Iterable, Tuple, NamedTuple, Any
 from docx import Document
 from docx.shared import Inches
 from pathlib import Path
 import janitor
 import pandas as pd
 
-old_structure_keys = ('sectiontype', 'sectioncontains', 'sectionstyle', 'titlestyle', 'sectionbreak', 'pagebreak',
-                      'path')
 # Define headers for the batch and structure worksheets. These are fixed.
 expected_batch_headers = ['data_worksheet', 'structure_worksheet', 'header_row', 'drop_empty_rows', 'template_file',
                           'filter_rows', 'output_file']
@@ -341,7 +339,7 @@ class Laundry:
         for t_batch_row in self.batch_df.itertuples():
             t_structure_worksheet = t_batch_row.structure_worksheet
             t_data_worksheet = t_batch_row.data_worksheet
-            t_filter_data_columns = t_batch_row.filter_rows
+            # t_filter_data_columns = t_batch_row.filter_rows
             self.t_structure_df = self.excel_to_dataframe(self._washing_basket, t_structure_worksheet, header_row=0,
                                                           clean_header=True, drop_empty_rows=False)
 
@@ -349,6 +347,11 @@ class Laundry:
             self.t_data_df = self.excel_to_dataframe(self._washing_basket, t_data_worksheet,
                                                      header_row=t_batch_row.header_row,
                                                      clean_header=True, drop_empty_rows=True)
+
+            # Filter the data DataFrame using the filters passed.
+            if str(t_batch_row.filter_rows).lower() not in invalid and t_batch_row.filter_rows is not None:
+                for row_filter in t_batch_row.filter_rows:
+                    self.t_data_df = self.t_data_df.loc[self.t_data_df[row_filter[0]].isin(row_filter[1])]
 
             # Step 8.
             # Check the structure data.
@@ -611,7 +614,6 @@ class Laundry:
         :param worksheet: The Excel spreadsheet worksheet's name.
         :param header_row: index of the header row in the spreadsheet. Defaults to 0, i.e. assumes the headers are at
         the top of the page.
-        :param remove_col: remove the column headers contained in the passed list.
         :param clean_header: If True clean the column headers
         :param drop_empty_rows: If True remove empty rows.
         :return:
@@ -630,7 +632,7 @@ class Laundry:
         return df
 
     @staticmethod
-    def prepare_row_filters(filters: str) -> List[Tuple[str, int]]:
+    def prepare_row_filters(filters: str) -> List[Tuple[Any, list]]:
         """
         Split the passed string into a list of Tuples taking the form (column_name, filter_keyword)
         :param filters:
@@ -655,10 +657,3 @@ class Laundry:
                              f'{expected_list}.')
         else:
             return True
-
-    def single_load(self) -> SingleLoad:
-        """
-        Create a Laundry object.
-        :return:
-        """
-        pass
