@@ -1,10 +1,41 @@
+2020.1.1
+========
+
+Features
+--------
+
+* The readme has been updated to include changes made in 2020.1.0.
+* The changelog has been updated. :)
+
+Bug Fixes
+---------
+
+Other
+-----
+
+2020.1.0
+========
+
+Features
+--------
+
+The app has been completely rewritten in an effort to make it faster and more verbose to communicate what is going on the user. For those interested dictionaries have been replaced by greater uses of Pandas DataFrames, and avoided repeated imports from disk.
+
+Bug Fixes
+---------
+
+* It's been completely rewritten. There will be new bugs. ;)
+
+Other
+-----
+
 2019.0.7
 ========
 
 Features
 --------
 
-* Added a check to ensure that any referenced directorys are checked to exist before proceeding.
+* Added a check to ensure that any referenced directories are checked to exist before proceeding.
 
 Bug Fixes
 ---------

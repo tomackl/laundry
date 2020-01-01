@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setup(
     name='laundry',
-    version='2020.1.0',
+    version='2020.1.1',
     author='Tom Ackland',
     author_email='ackland.thomas@gmail.com',
     url='https://github.com/tomackl/laundry',
     description='Folding spreadsheets into neat shapes.',
     long_description=long_description,
-    long_description_content_type="split_text/markdown",
+    long_description_content_type="text/markdown",
     python_requires=">=3.6",
     packages=find_packages(where='src'),
     package_dir={'': 'src'},

@@ -57,50 +57,50 @@ A `structure worksheet` must be defined for each output file that will be produc
 
 The following column names __must__ implemented in the `structure_worksheet`. If they are not used the app will not work.
 
-#### `sectiontype`
+#### `section_type`
 This defines the type of section that will be inserted with the output document. The top-to-bottom order will determine the order of the types in the `output_file`. The options that are currently supported are:
 
-- `para`: This will insert a paragraph with the column header being the paragraph title styled using the style defined in `sectionstyle`.
+- `para`: This will insert a paragraph with the column header being the paragraph title styled using the style defined in `section_style`.
 
-- `table`: Will insert a table that contains the data contained in `sectioncontains` cell with the table column containing the same column heading as the original data (with any underscores removed).
+- `table`: Will insert a table that contains the data contained in `section_contains` cell with the table column containing the same column heading as the original data (with any underscores removed).
 
 - `heading`: Will use the data contained within the cell as a section heading made up of a title (column heading) and a paragraph (cell contents).
 
-- `photo`: Inserts one or more photos (images) into the paragraph. Multiple images can be added by including them in the `sectioncontains` column. The `photo` column heading is used to provide a file path to the directory containing the files. Including the photo's file extension is not required. The app will sequence through a number of popular formats before providing an error message to the standard output and adding the error message to the output document.
+- `photo`: Inserts one or more photos (images) into the paragraph. Multiple images can be added by including them in the `section_contains` column. The `photo` column heading is used to provide a file path to the directory containing the files. Including the photo's file extension is not required. The app will sequence through a number of popular formats before providing an error message to the standard output and adding the error message to the output document.
 
-#### `sectioncontains`
-This contains one or more of the column names used in the `data` worksheet. Multiple column names can be used with `table` using  `sectiontypes` provided the are separated by `new lines` (alt + enter) in the cell, or commas.  `new lines` are the preferred method.
+#### `section_contains`
+This contains one or more of the column names used in the `data` worksheet. Multiple column names can be used with `table` using  `section_type` provided the are separated by `new lines` (alt + enter) in the cell, or commas.  `new lines` are the preferred method.
 
-#### `sectionstyle`
+#### `section_style`
 This Word *style* contained within the `template_file`'s `.docx` file. If this style is not in the `template_file` then Word's default styles will be used. *This is a limitation of Word*.
 
-#### `titlestyle`
+#### `title_style`
 The Word formatting style to be used for titles within the document. This column does not apply to tables.
 
-#### `sectionbreak`
+#### `section_break`
 Must be either `True` or `False`. If `True` it will insert an empty paragraph provide a visual break between it and the following paragraph.
 
-#### `pagebreak`
+#### `page_break`
 Must be either `True` or `False`. If `True` it will insert a page break (that is, start a new page) after the paragraph. This is useful for clearly separating information that is related to different `data_worksheet` rows.
 
-##### `path`
+#### `path`
 This defines the relative file path to the directory (folder) containing the photos. All photos referenced in the cell must be stored in the same directory.
 
-### `sectiontype` Limits
+### `section_type` Limits
 
-Each of the `sectiontypes` have some limit regarding their operation.
+Each of the `section_type` types have some limit regarding their operation.
 
 - Where `heading` is used it should be a single column heading per paragraph.
 
 - Where `paragraph` is used it should be a single column heading per paragraph.
 
-- `table` can use any number of columns headings. Each column heading should be separated by a `newline` (preferred option) or by a comma (`,`).
+- `table` can use any number of columns headings. Each column heading should be separated by a `newline` (`\n`) (preferred option) or by a comma (`,`).
 
-- `sectionstyles` _can_ only be a single value. This is a string (text) that can contain spaces. Make sure that the spelling and capitalisation is correct.
+- `section_style` _can_ only be a single value. This is a string (text) that can contain spaces. Make sure that the spelling and capitalisation is correct.
 
-- `titlestyles` _can_ only be a single value. This is a string (text) that can contain spaces. Make sure that the spelling and capitalisation is correct.
+- `title_style` _can_ only be a single value. This is a string (text) that can contain spaces. Make sure that the spelling and capitalisation is correct.
 
-- `pagebreak` is a `True`/`False` value.
+- `page_break` is a `True`/`False` value.
 
 ## Arranging Spreadsheet Data
 
@@ -132,18 +132,18 @@ The `data_worksheet` contains the data that will be formatted into the `output_f
 
 1. The column headers must be in row 0 (that is, the first row) in the worksheet. If not, the app will not work.
 
-2. The `sectiontype` must be one of the following:
+2. The `section_type` must be one of the following:
 
     - `photo`
     - `para`
     - `table`
     - `heading`
 
-3. `table` sections do not require a value for `titlestyle`.
+3. `table` sections do not require a value for `title_style`.
 
-4. `photo` sections do not require a value for `titlestyle` or `sectionstyle`, however they do require `path` to be completed.
+4. `photo` sections do not require a value for `title_style` or `section_style`, however they do require `path` to be completed.
 
-5. `sectionbreak` and `pagebreak` must be `TRUE` or `FALSE`.
+5. `section_break` and `page_break` must be `TRUE` or `FALSE`.
 
 ### `batch_worksheet`
 
@@ -160,10 +160,6 @@ The`structure_worksheet`defines how the output file will be structured. This is 
 #### `header_row` requirements
 
 The number of the row that defines the header row in the `data_worksheet`. This functionally identical to the `-dh` flag used with the `single` sub-command as described above.
-
-#### `remove_columns` requirements
-
-Not currently used.
 
 #### `drop_empty_columns` requirements
 
@@ -226,3 +222,6 @@ Some Word styles appear to be concatenations of other styles within Word, e.g. '
 
 Due to limitations with Word user specific styles need to be saved to  the `template_file` for them to be available. If the specified name is not present in the `template_file` then the app will not function.
 
+### I want to create a single table from the data but every row has the header details: how do I remove the header details without using Word?
+
+This is a known problem, currently without a solution. A solution is being considered.
