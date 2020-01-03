@@ -21,6 +21,7 @@ setup(
         'Pandas',
         'python-docx',
         'pyjanitor',
+        'colorama',
     ],
     entry_points={
         'console_scripts': [

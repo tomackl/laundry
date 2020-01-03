@@ -4,6 +4,7 @@ from laundry.laundryclass import Laundry
 from pathlib import Path
 
 
+
 @click.group()
 @click.version_option(laundry_version)
 def cli():
