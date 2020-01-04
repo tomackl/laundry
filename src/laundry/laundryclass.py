@@ -23,6 +23,7 @@ OUTPUT_TEXT = {'fore_colour': 'GREEN', 'style_colour': 'NORMAL'}
 EXCEPTION_TEXT = {'fore_colour': 'BLACK', 'back_colour': 'RED', 'style_colour': 'NORMAL'}
 DATAFRAME_TITLE = {'fore_colour': 'BLUE', 'style_colour': 'BRIGHT'}
 DATAFRAME_TEXT = {'fore_colour': 'BLACK', 'back_colour': 'BLUE'}
+FAULTFIND_TEXT = {'fore_colour': 'BLACK', 'back_colour': 'GREEN'}
 
 
 # def exit_app():
@@ -202,7 +203,7 @@ class SingleLoad:
                 self.insert_table(len(table_col_hdr), len(sorted_row), sorted_row, section_style=sect_style_element)
 
             elif sect_type_element == 'photo':
-                if row[sect_contains_element] is not 'None':
+                if isinstance(row[sect_contains_element], Path):
                     for each in row[sect_contains_element]:
                         self.insert_photo(each, 4)
             else:
@@ -592,12 +593,15 @@ class Laundry:
                             t_photo = self.check_photo_paths(t, t_photos_found)
                             t_row_photo.append(t_photo)
                         except Exception as e:
-                            print_verbose(f'{e}', **EXCEPTION_TEXT)
+                            print_verbose(f'{e}: Row {row.Index} - {t_row[col]}', **EXCEPTION_TEXT)
                         self.t_data_df.at[t_row['Index'], col] = t_row_photo
+                # todo: consider deleting the elif statement below.
                 elif str(t_row[col]).lower() in ['no photo', 'none', 'nan', '-']:
-                    self.t_data_df.at[t_row['Index'], col] = 'None'
-                for fp in self.t_data_df.at[t_row['Index'], col]:
-                    print_verbose(f'\t{str(fp)}', **OUTPUT_TEXT)
+                    self.t_data_df.at[row.Index, col] = 0
+                if isinstance(self.t_data_df.at[t_row['Index'], col], Iterable):
+                    for fp in self.t_data_df.at[t_row['Index'], col]:
+                        if isinstance(fp, Path):
+                            print_verbose(f'\t{str(fp)}', **OUTPUT_TEXT)
 
     @staticmethod
     def check_photo_paths(expected_photo: (Path, str), actual_photos: dict) -> Path:
