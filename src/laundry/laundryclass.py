@@ -14,7 +14,7 @@ from sys import exit as sys_exit
 colorama_init(autoreset=True)
 
 # Define headers for the batch and structure worksheets. These are fixed.
-expected_batch_headers = ['data_worksheet', 'structure_worksheet', 'header_row', 'drop_empty_rows', 'template_file',
+expected_batch_headers = ['data_worksheet', 'structure_worksheet', 'header_row', 'drop_empty_columns', 'template_file',
                           'filter_rows', 'output_file']
 expected_structure_headers = ['section_type', 'section_contains', 'section_style', 'title_style', 'section_break',
                               'page_break', 'path']
@@ -56,7 +56,7 @@ def print_verbose(text: (str, Exception), fore_colour: str = 'RESET', back_colou
     if style_colour is not None:
         style = style[style_colour.upper()]
 
-    print(f'{fore}{back}{style}{text}', end=end, flush=flush)
+    print(f'{fore}{back}{style}{text}{Style.RESET_ALL}', end=end, flush=flush)
 
 
 def split_str(data_str: str) -> List[str]:
@@ -272,7 +272,7 @@ class SingleLoad:
 
 class Laundry:
     def __init__(self, input_fp: Path, data_worksheet: str = None, structure_worksheet: str = None,
-                 batch_worksheet: str = None, header_row: int = 0, drop_empty_rows: bool = None,
+                 batch_worksheet: str = None, header_row: int = 0, drop_empty_columns: bool = None,
                  template_file: str = None, filter_rows: str = None, output_file: (Path, str) = None):
         """
         Instantiating the class will run error checking on the passed information, checking for the following steps:
@@ -288,7 +288,7 @@ class Laundry:
         :param structure_worksheet: The name of the worksheet containing the output document's structure.
         :param batch_worksheet: The name of the worksheet containing the batch data.
         :param header_row: 
-        :param drop_empty_rows: An explicit tag to drop empty rows from the worksheet if they contain two or more empty
+        :param drop_empty_columns: An explicit tag to drop empty rows from the worksheet if they contain two or more empty
         cells. If this is left as None it will be automatically set to True for the data worksheet.
         :param template_file: 
         :param filter_rows: 
@@ -297,7 +297,6 @@ class Laundry:
         # Step 1: Basic data checking.
         t_sheets_expected = remove_from_iterable([data_worksheet, structure_worksheet, batch_worksheet], None)
         print_verbose('Check: Worksheets are present:', **OUTPUT_TITLE)
-        # print_verbose('Check: Worksheets are present:', fore_colour='GREEN', style_colour='BRIGHT')
         if len(t_sheets_expected) == 0:
             raise ValueError(f'Either the "data" and "structure" worksheets, or the "batch" worksheet must be '
                              f'provided.')
@@ -339,23 +338,23 @@ class Laundry:
         #   dictionary. Error checking will be completed later.
         # Step 4.1. If all the expected command line parameters are set to the defaults assume that the a batch
         #   approach has been used. We do _not_ test for batch since this will be tested for later.
-        input_arg = [data_worksheet, structure_worksheet, header_row, drop_empty_rows, template_file, filter_rows,
+        input_arg = [data_worksheet, structure_worksheet, header_row, drop_empty_columns, template_file, filter_rows,
                      output_file]
 
         self.batch_df: pd.DataFrame = pd.DataFrame(columns=['data_worksheet', 'structure_worksheet', 'header_row',
-                                                            'drop_empty_rows', 'template_file', 'output_file'])
+                                                            'drop_empty_columns', 'template_file', 'output_file'])
         # Step 4.2. Since the default values for the input args are all 'None' or 0, if we remove these values from the
         #   list, if the list's length is greater than 0 then there is a chance that a single wash is required. We don't
         #   test for the input file path since this has already occurred.
         if len(remove_from_iterable(input_arg, None, 0)) > 0:
 
             # If the drop_empty_rows is None set it to True. This will save the user problems.
-            if drop_empty_rows is None:
-                drop_empty_rows = True
+            if drop_empty_columns is None:
+                drop_empty_columns = True
 
             # Step 4.3. Turn the command line arguments into a dict and store temporarily.
             t_batch_dict = {'data_worksheet': [data_worksheet], 'structure_worksheet': [structure_worksheet],
-                            'header_row': [header_row], 'drop_empty_rows': [drop_empty_rows],
+                            'header_row': [header_row], 'drop_empty_columns': [drop_empty_columns],
                             'template_file': [template_file], 'filter_rows': [filter_rows],
                             'output_file': [output_file]}
             self.batch_df = pd.DataFrame.from_dict(data=t_batch_dict)
@@ -370,7 +369,7 @@ class Laundry:
             print_verbose(f'{self.batch_df}', **DATAFRAME_TEXT)
             print_verbose(f'Check: Batch worksheet data', **OUTPUT_TITLE)
             self.check_batch_worksheet_data()
-            print_verbose(f'\tBatch data checked', **OUTPUT_TEXT)
+            print_verbose(f'Batch data checked', **OUTPUT_TITLE)
         except Exception as e:
             print_verbose(f'{e}', **EXCEPTION_TEXT)
             # exit_app()
@@ -378,9 +377,8 @@ class Laundry:
         # Step 6. Convert the batch DataFrame to a dict and store.
         self._batch_dict = self.batch_df.to_dict('records')
 
-        # Step 7.
-        # Every row of the the batch DataFrame contains information regarding an output file. For each row in the
-        # DataFrame produce the associated output file.
+        # Step 7 - Every row of the the batch DataFrame contains information regarding an output file. For each row in
+        # the DataFrame produce the associated output file.
         for t_batch_row in self.batch_df.itertuples():
             t_structure_worksheet = t_batch_row.structure_worksheet
             t_data_worksheet = t_batch_row.data_worksheet
@@ -397,32 +395,30 @@ class Laundry:
                 for row_filter in t_batch_row.filter_rows:
                     self.t_data_df = self.t_data_df.loc[self.t_data_df[row_filter[0]].isin(row_filter[1])]
 
-            # Step 8.
-            # Check the structure data.
-            try:
-                print_verbose(f'Structure worksheet data', **DATAFRAME_TITLE)
-                print_verbose(f'{self.t_structure_df}', **DATAFRAME_TEXT)
-                print_verbose(f'Check: Structure worksheet data', **OUTPUT_TITLE)
-                self.check_structure_worksheet_data()
-                print_verbose(f'\tStructure data checked', **OUTPUT_TEXT)
-            except Exception as e:
-                print_verbose(f'{e}', **EXCEPTION_TEXT)
+            # Step 8 - Check the structure data.
+            self.check_dataframe(f'Structure worksheet data', self.t_structure_df, f'Check: Structure worksheet data',
+                                 self.check_structure_worksheet_data, f'Structure dataframe checked',
+                                 f'{t_batch_row.structure_worksheet}', f'Structure dataframe failure: ')
 
-            # Step 9.
-            # Check the data worksheet data.
-            try:
-                print_verbose(f'Data dataframe', **DATAFRAME_TITLE)
-                print_verbose(f'{self.t_data_df}', **DATAFRAME_TEXT)
-                print_verbose(f'Check: Data worksheet data', **OUTPUT_TITLE)
-                self.check_data_worksheet_data()
-                print_verbose(f'\tData data checked', **OUTPUT_TEXT)
-            except Exception as e:
-                print_verbose(f'{e}', **EXCEPTION_TEXT)
+            # Step 9 - Check the data worksheet data.
+            self.check_dataframe(f'Data dataframe', self.t_data_df, f'Check: Data worksheet data',
+                                 self.check_data_worksheet_data, f'Data dataframe checked',
+                                 f'{t_batch_row.data_worksheet}', f'Data dataframe failure: ')
 
-            SingleLoad(self.t_structure_df, self.t_data_df,
-                       t_batch_row.template_file, t_batch_row.output_file)
+            self.wash_load(t_batch_row.template_file, t_batch_row.output_file)
+            # SingleLoad(self.t_structure_df, self.t_data_df,
+            #            t_batch_row.template_file, t_batch_row.output_file)
 
             del self.t_structure_photo_path
+
+    def wash_load(self, template_file: Path, output_file: Path):
+        """
+
+        :param template_file:
+        :param output_file:
+        :return:
+        """
+        SingleLoad(self.t_structure_df, self.t_data_df, template_file, output_file)
 
     def check_batch_worksheet_data(self):
         """
@@ -460,9 +456,10 @@ class Laundry:
                     self.batch_df.at[row.Index, 'template_file'] = fp_template
                     print_verbose(f"{self.batch_df.at[row.Index, 'template_file']}", **OUTPUT_TEXT)
             except ValueError as v:
-                print_verbose(f'{v}. The template file does not exist.', **EXCEPTION_TEXT)
+                print_verbose(f'{v}: Row {row.Index} - Template file {row.template_file} does not exist at the given '
+                              f'location.', **EXCEPTION_TEXT)
             except Exception as e:
-                print_verbose(f'{e}', **EXCEPTION_TEXT)
+                print_verbose(f'{e}: Row {row.Index}\n{row}', **EXCEPTION_TEXT)
 
             # Check 4.
             print_verbose(f'\tCheck output filename {row.output_file}.', end='...', **OUTPUT_TEXT)
@@ -474,21 +471,32 @@ class Laundry:
                 self.batch_df.at[row.Index, 'output_file'] = fp_output
                 print_verbose(f"{self.batch_df.at[row.Index, 'output_file']}", **OUTPUT_TEXT)
             except FileNotFoundError as f:
-                print_verbose(f'{f}. File {row.output_file} could not be resolved.', **EXCEPTION_TEXT)
+                print_verbose(f'{f}.  Row {row.Index} - Output file {row.output_file} directory does not exist at the '
+                              f'given loaction.', **EXCEPTION_TEXT)
             except Exception as e:
-                print_verbose(f'{e}', **EXCEPTION_TEXT)
+                print_verbose(f'{e}: Row {row.Index}\n{row}', **EXCEPTION_TEXT)
 
             # Check 5.
-            if str(row.filter_rows).lower() not in invalid:
+            print_verbose(f'\tCheck row filters:', end='...', **OUTPUT_TEXT)
+            if str(row.filter_rows).lower() not in invalid and row.filter_rows is not None:
                 self.batch_df.at[row.Index, 'filter_rows'] = self.prepare_row_filters(row.filter_rows)
+                print_verbose(f'OK', **OUTPUT_TEXT)
+            else:
+                print_verbose(f'OK. No filters exist.', **OUTPUT_TEXT)
 
             # Check 6.
+            print_verbose(f'\tCheck drop empty columns', end='...', **OUTPUT_TEXT)
             if row.drop_empty_columns is None:
                 self.batch_df.at[row.Index, 'drop_empty_columns'] = False
+                print_verbose(f'OK', **OUTPUT_TEXT)
+            else:
+                print_verbose(f'OK', **OUTPUT_TEXT)
 
             # Check 7
+            print_verbose(f'\tCheck header row details', end='...', **OUTPUT_TEXT)
             if row.header_row is None:
                 self.batch_df.at[row.Index, 'header_row'] = 0
+            print_verbose(f'OK', **OUTPUT_TEXT)
 
     def check_structure_worksheet_data(self):
         """
@@ -531,17 +539,22 @@ class Laundry:
                     print_verbose(f'\t{self.t_structure_photo_path[row.section_contains]}', **OUTPUT_TEXT)
 
                 except ValueError as v:
-                    print_verbose(f'{v}. The path to the photos directory does not exist.', **EXCEPTION_TEXT)
+                    print_verbose(f'{v}: Row {row.Index} - Photo directory {row.path} cannot be found at the given '
+                                  f'locaton.', **EXCEPTION_TEXT)
                 except Exception as e:
-                    print_verbose(f'{e}', **EXCEPTION_TEXT)
+                    print_verbose(f'{e}: Row {row.Index}\n{row}', **EXCEPTION_TEXT)
 
             # Check 5.
+            print_verbose(f'\tCheck section break details', end='...', **OUTPUT_TEXT)
             if row.section_break is None:
                 self.batch_df.at[row.Index, 'section_break'] = False
+            print_verbose(f'OK', **OUTPUT_TEXT)
 
             # Check 6.
+            print_verbose(f'\tCheck page break details', end='...', **OUTPUT_TEXT)
             if row.page_break is None:
                 self.batch_df.at[row.Index, 'page_break'] = False
+            print_verbose(f'OK', **OUTPUT_TEXT)
 
     def check_data_worksheet_data(self):
         """
@@ -693,3 +706,14 @@ class Laundry:
             print_verbose(f'{success_text}', **OUTPUT_TEXT)
         except Exception as e:
             print_verbose(f'{e}', **EXCEPTION_TEXT)
+
+    def check_dataframe(self, title: str, check_dataframe: pd.DataFrame, worksht_title: str, method,
+                        complete_check: str, check_worksheet: str = '', exception_text: str = ''):
+        try:
+            print_verbose(f'{title}: {check_worksheet}', **DATAFRAME_TITLE)
+            print_verbose(f'{check_dataframe}', **DATAFRAME_TEXT)
+            print_verbose(f'{worksht_title}: {check_worksheet}', **OUTPUT_TITLE)
+            method()
+            print_verbose(f'{complete_check}: {check_worksheet}', **OUTPUT_TITLE)
+        except Exception as e:
+            print_verbose(f'{e}: {exception_text}{Fore.BLACK}{Back.WHITE}{check_worksheet}', **EXCEPTION_TEXT)

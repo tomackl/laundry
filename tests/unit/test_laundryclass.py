@@ -45,12 +45,12 @@ def test_remove_underscore():
     assert laundry.remove_underscore('this_is_a_test') == expected
 
 
-@pytest.mark.parametrize('test_path,expected', [[[r'\\..\unit'], Path(r'../unit')],
-                                                [[r'/../../src'], Path(r'../../src')],
-                                                [[r'/test_laundryclass.py'], r'Incorrect path.']
-                                                ])
-def test_confirm_directory_path(test_path, expected):
-    assert laundry.confirm_directory_path(test_path) == expected
+# @pytest.mark.parametrize('test_path,expected', [[[r'\\..\unit'], Path(r'../unit')],
+#                                                 [[r'/../../src'], Path(r'../../src')],
+#                                                 [[r'/test_laundryclass.py'], r'Incorrect path.']
+#                                                 ])
+# def test_confirm_directory_path(test_path, expected):
+#     assert laundry.resolve_file_path(test_path) == expected
 
 
 def test_resolve_file_path():
@@ -73,17 +73,17 @@ def test_remove_from_list(values, args, expected):
     assert laundry.remove_from_iterable(values, *args) == expected
 
 
-def test_singleload__init__():
-    """This test is limited to testing that the object is created successfully."""
-    obj = laundry.SingleLoad(struct_dict, data_dict, file_template, file_path, file_output)
-    assert type(obj) is laundry.SingleLoad
+# def test_singleload__init__():
+#     """This test is limited to testing that the object is created successfully."""
+#     obj = laundry.SingleLoad(struct_dict, data_dict, file_template, file_path, file_output)
+#     assert type(obj) is laundry.SingleLoad
 
 
-def test_singleload_split_into_rows():
-    obj = laundry.SingleLoad(struct_dict, data_dict, file_template, file_path, file_output)
-    result = [{3: 'c'}, {4: 'd'}]
-    obj.split_into_rows()
-    assert obj._row_data == result
+# def test_singleload_split_into_rows():
+#     obj = laundry.SingleLoad(struct_dict, data_dict, file_template, file_path, file_output)
+#     result = [{3: 'c'}, {4: 'd'}]
+#     obj.split_into_rows()
+#     assert obj._row_data == result
 
 
 def start_wash():
@@ -111,11 +111,14 @@ def test_photo():
 
 
 def test_laundry__init__worksheet():
-    # with pytest.raises(TypeError) as excinfo:
-    #     obj = laundry.Laundry('1234')
-    # exception_msg = excinfo.value.args[0]
-    # assert exception_msg == 'Either the "data" and "structure" worksheets, or the "batch" worksheet must be provided.'
-    pass
+    test_obj = laundry.Laundry(Path('../../resources/input_files/test_spreadsheet_laundryclass.xlsm'),
+                               data_worksheet='Master List', structure_worksheet='_structure',
+                               output_file=Path('../../resources/output_files/test_laundry_output.docx'),
+                               template_file=Path('../../resources/templates/CONVERSION_TEMPLATE.docx'), header_row=5)
+    template_file = laundry.resolve_file_path('../../resources/templates/CONVERSION_TEMPLATE.docx')
+    output_file = laundry.resolve_file_path('../../resources/output_files/test_laundry_output.docx')
+    test_obj.wash_load(template_file, output_file)
+    assert isinstance(test_obj, laundry.Laundry)
 
 
 def test_laundry_check_worksheets_basic():
