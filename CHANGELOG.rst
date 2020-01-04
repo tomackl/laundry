@@ -1,3 +1,25 @@
+2020.1.3
+========
+
+Features
+--------
+
+* Bug fixes
+
+Bug Fixes
+---------
+
+* Corrected a previously undetected error check that was not working as intended.
+
+2020.1.2
+========
+
+Features
+--------
+
+* Coloured output has been provided using colorama.
+
+
 2020.1.1
 ========
 
