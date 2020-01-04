@@ -4,7 +4,7 @@ from laundry.constants import data_frame, invalid, photo_formats
 from typing import Dict, List, Iterable, Tuple, NamedTuple, Any
 from docx import Document
 from docx.shared import Inches
-from pathlib import Path
+from pathlib import Path, PurePath
 import janitor
 import pandas as pd
 from colorama import init as colorama_init
@@ -18,16 +18,18 @@ expected_batch_headers = ['data_worksheet', 'structure_worksheet', 'header_row',
                           'filter_rows', 'output_file']
 expected_structure_headers = ['section_type', 'section_contains', 'section_style', 'title_style', 'section_break',
                               'page_break', 'path']
+expected_section_types = ['heading', 'table', 'para', 'photo']
 OUTPUT_TITLE = {'fore_colour': 'GREEN', 'style_colour': 'BRIGHT'}
-OUTPUT_TEXT = {'fore_colour': 'GREEN', 'style_colour': 'NORMAL'}
-EXCEPTION_TEXT = {'fore_colour': 'BLACK', 'back_colour': 'RED', 'style_colour': 'NORMAL'}
+OUTPUT_TEXT = {'fore_colour': 'GREEN', 'style_colour': 'DIM'}
+EXCEPTION_TEXT = {'fore_colour': 'RED', 'style_colour': 'BRIGHT'}
 DATAFRAME_TITLE = {'fore_colour': 'BLUE', 'style_colour': 'BRIGHT'}
 DATAFRAME_TEXT = {'fore_colour': 'BLACK', 'back_colour': 'BLUE'}
 FAULTFIND_TEXT = {'fore_colour': 'BLACK', 'back_colour': 'GREEN'}
+OUTPUT_SUCCESS = {'fore_colour': 'CYAN', 'back_colour': 'BLACK', 'style_colour': 'BRIGHT'}
 
 
-# def exit_app():
-#     sys_exit()
+def exit_app():
+    sys_exit()
 
 
 def print_verbose(text: (str, Exception), fore_colour: str = 'RESET', back_colour: str = 'RESET',
@@ -177,6 +179,8 @@ class SingleLoad:
         for row in self._data.itertuples():
             self.format_docx(row)
 
+        print_verbose(f'\nDocument {self._file_output} completed', **OUTPUT_SUCCESS)
+
     def format_docx(self, row: NamedTuple):
         """
         This is factory method that calls the appropriate the information contained within document structure.
@@ -203,7 +207,7 @@ class SingleLoad:
                 self.insert_table(len(table_col_hdr), len(sorted_row), sorted_row, section_style=sect_style_element)
 
             elif sect_type_element == 'photo':
-                if isinstance(row[sect_contains_element], Path):
+                if isinstance(row[sect_contains_element], Iterable):
                     for each in row[sect_contains_element]:
                         self.insert_photo(each, 4)
             else:
@@ -438,12 +442,13 @@ class Laundry:
         t_batch_structure_worksheets_expected = list(self.batch_df.loc[:, 'structure_worksheet'])
 
         # Check 1.
-        self.data_check(f'\tBatch work sheet headers.', f'Ok', [(expected_batch_headers, t_batch_headers)])
+        self.data_check(f'\tBatch work sheet headers.', f'Ok', [(expected_batch_headers, t_batch_headers)],
+                        compare='subset')
 
         # Check 2.
         self.data_check(f'\tData & structure worksheets referenced correctly.', f'Ok',
                         [(t_batch_structure_worksheets_expected, self._sheets_actual),
-                         (t_batch_data_worksheets_expected, self._sheets_actual)])
+                         (t_batch_data_worksheets_expected, self._sheets_actual)], compare='subset')
 
         # Check 3.
         for row in self.batch_df.itertuples():
@@ -508,21 +513,25 @@ class Laundry:
         :return:
         """
         t_structure_headers = list(self.t_structure_df)
-        t_structure_section_types = list(self.t_structure_df.loc[:, 'section_type'])
-        t_structure_section_contains = list(self.t_structure_df.loc[:, 'section_contains'])
-        t_data_section_types = list(self.t_data_df)
 
         # Check 1
-        self.data_check(f'  Check structure work sheet headers.', f'Ok', [(expected_structure_headers,
-                        t_structure_headers)])
+        self.data_check(f'  Check structure work sheet headers', f'Ok', [(expected_structure_headers,
+                        t_structure_headers)], compare='subset')
+
+        t_structure_section_types = list(self.t_structure_df.loc[:, 'section_type'])
+        t_data_section_types = list(self.t_data_df)
 
         # Check 2
-        self.data_check(f'  Check structure worksheet section_types are correct.', f'Ok', [(expected_structure_headers,
-                        t_structure_section_types)])
+        t_structure_section_contains: List = []
+        for each in list(self.t_structure_df.loc[:, 'section_contains']):
+            for item in split_str(each):
+                t_structure_section_contains.append(item)
+        self.data_check(f'  Check structure worksheet section_types are correct.', f'Ok',
+                        [(expected_section_types, t_structure_section_types)], compare='part')
 
         # Check 3
         self.data_check(f'  Check structure worksheet section_contain details are correct.', f'Ok',
-                        [(t_data_section_types, t_structure_section_contains)])
+                        [(t_data_section_types, t_structure_section_contains)], compare='part')
 
         for row in self.t_structure_df.itertuples():
             # Check 4
@@ -590,14 +599,10 @@ class Laundry:
                 if str(t_row[col]).lower() not in ['no photo', 'none', 'nan', '-']:
                     for t in split_str(t_row[col]):
                         try:
-                            t_photo = self.check_photo_paths(t, t_photos_found)
-                            t_row_photo.append(t_photo)
+                            t_row_photo.append(self.check_photo_paths(t, t_photos_found))
                         except Exception as e:
                             print_verbose(f'{e}: Row {row.Index} - {t_row[col]}', **EXCEPTION_TEXT)
                         self.t_data_df.at[t_row['Index'], col] = t_row_photo
-                # todo: consider deleting the elif statement below.
-                elif str(t_row[col]).lower() in ['no photo', 'none', 'nan', '-']:
-                    self.t_data_df.at[row.Index, col] = 0
                 if isinstance(self.t_data_df.at[t_row['Index'], col], Iterable):
                     for fp in self.t_data_df.at[t_row['Index'], col]:
                         if isinstance(fp, Path):
@@ -687,27 +692,47 @@ class Laundry:
 
     @staticmethod
     def compare_lists(expected_list, actual_list):
-        if set(expected_list) <= set(actual_list) is False:
-            raise ValueError(f'The provided headers {actual_list} do not match the required headers '
-                             f'{expected_list}.')
+        expected_list = sorted(expected_list)
+        actual_list = sorted(actual_list)
+        if set(expected_list).issubset(set(actual_list)) is False:
+            raise ValueError(f'The provided headers:\n\t{actual_list}\ndo not match the required headers'
+                             f'\n\t{expected_list}.')
         else:
             return True
 
-    def data_check(self, check_text: str, success_text: str, comparision_list: List[tuple]):
+    @staticmethod
+    def in_lists(expected_list, actual_list):
+        for each in actual_list:
+            if each.lower() not in expected_list:
+                raise ValueError(f'The provided headers:\n\t{actual_list}\ndo not match the required headers'
+                                 f'\n\t{expected_list}.')
+        else:
+            return True
+
+    def data_check(self, check_text: str, success_text: str, comparision_list: List[tuple], compare: str):
         """
 
         :param check_text:
         :param success_text:
         :param comparision_list:
+
         :return:
         """
         try:
             print_verbose(f'{check_text}', end='...', **OUTPUT_TEXT)
-            for expected, actual in comparision_list:
-                self.compare_lists(expected, actual)
+            if compare is 'subset':
+                for expected, actual in comparision_list:
+                    self.compare_lists(expected, actual)
+            if compare is 'part':
+                for expected, actual in comparision_list:
+                    self.in_lists(expected, actual)
             print_verbose(f'{success_text}', **OUTPUT_TEXT)
+        except ValueError as v:
+            print_verbose(f'\nValueError:\n{v}', **EXCEPTION_TEXT)
+            exit_app()
         except Exception as e:
-            print_verbose(f'{e}', **EXCEPTION_TEXT)
+            print_verbose(f'General exception {e}', **EXCEPTION_TEXT)
+            exit_app()
 
     def check_dataframe(self, title: str, check_dataframe: pd.DataFrame, worksht_title: str, method,
                         complete_check: str, check_worksheet: str = '', exception_text: str = ''):
@@ -717,5 +742,13 @@ class Laundry:
             print_verbose(f'{worksht_title}: {check_worksheet}', **OUTPUT_TITLE)
             method()
             print_verbose(f'{complete_check}: {check_worksheet}', **OUTPUT_TITLE)
+        except KeyError as k:
+            print_verbose(f'KeyError {k}: ', **EXCEPTION_TEXT)
+            exit_app()
+        except ValueError as v:
+            print_verbose(f'\nValueError {v}: \n',
+                          **EXCEPTION_TEXT)
+            exit_app()
         except Exception as e:
-            print_verbose(f'{e}: {exception_text}{Fore.BLACK}{Back.WHITE}{check_worksheet}', **EXCEPTION_TEXT)
+            print_verbose(f'{e}: ', **EXCEPTION_TEXT)
+            exit_app()
