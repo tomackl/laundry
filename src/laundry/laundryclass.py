@@ -330,7 +330,7 @@ class Laundry:
             self.compare_lists(t_sheets_expected, self._sheets_actual)
             t_sht_actual = enumerate(self._sheets_actual, 1)
             for item, sht in t_sht_actual:
-                print_verbose(f'  Sheet {item}\t {sht}', **OUTPUT_TEXT)
+                print_verbose(f'  Sheet {item}:\t {sht}', **OUTPUT_TEXT)
         except Exception as e:
             print_verbose(f'{e}', **EXCEPTION_TEXT)
 
@@ -406,8 +406,6 @@ class Laundry:
                                  f'{t_batch_row.data_worksheet}', f'Data dataframe failure: ')
 
             self.wash_load(t_batch_row.template_file, t_batch_row.output_file)
-            # SingleLoad(self.t_structure_df, self.t_data_df,
-            #            t_batch_row.template_file, t_batch_row.output_file)
 
             del self.t_structure_photo_path
 
@@ -439,10 +437,10 @@ class Laundry:
         t_batch_structure_worksheets_expected = list(self.batch_df.loc[:, 'structure_worksheet'])
 
         # Check 1.
-        self.data_check(f'\tBatch work sheet headers.', f'OK', [(expected_batch_headers, t_batch_headers)])
+        self.data_check(f'\tBatch work sheet headers.', f'Ok', [(expected_batch_headers, t_batch_headers)])
 
         # Check 2.
-        self.data_check(f'\tData & structure worksheets referenced correctly.', f'OK',
+        self.data_check(f'\tData & structure worksheets referenced correctly.', f'Ok',
                         [(t_batch_structure_worksheets_expected, self._sheets_actual),
                          (t_batch_data_worksheets_expected, self._sheets_actual)])
 
@@ -480,23 +478,23 @@ class Laundry:
             print_verbose(f'\tCheck row filters:', end='...', **OUTPUT_TEXT)
             if str(row.filter_rows).lower() not in invalid and row.filter_rows is not None:
                 self.batch_df.at[row.Index, 'filter_rows'] = self.prepare_row_filters(row.filter_rows)
-                print_verbose(f'OK', **OUTPUT_TEXT)
+                print_verbose(f'Ok', **OUTPUT_TEXT)
             else:
-                print_verbose(f'OK. No filters exist.', **OUTPUT_TEXT)
+                print_verbose(f'Ok. No filters exist.', **OUTPUT_TEXT)
 
             # Check 6.
             print_verbose(f'\tCheck drop empty columns', end='...', **OUTPUT_TEXT)
             if row.drop_empty_columns is None:
                 self.batch_df.at[row.Index, 'drop_empty_columns'] = False
-                print_verbose(f'OK', **OUTPUT_TEXT)
+                print_verbose(f'Ok', **OUTPUT_TEXT)
             else:
-                print_verbose(f'OK', **OUTPUT_TEXT)
+                print_verbose(f'Ok', **OUTPUT_TEXT)
 
             # Check 7
             print_verbose(f'\tCheck header row details', end='...', **OUTPUT_TEXT)
             if row.header_row is None:
                 self.batch_df.at[row.Index, 'header_row'] = 0
-            print_verbose(f'OK', **OUTPUT_TEXT)
+            print_verbose(f'Ok', **OUTPUT_TEXT)
 
     def check_structure_worksheet_data(self):
         """
@@ -514,15 +512,15 @@ class Laundry:
         t_data_section_types = list(self.t_data_df)
 
         # Check 1
-        self.data_check(f'  Check structure work sheet headers.', f'OK', [(expected_structure_headers,
+        self.data_check(f'  Check structure work sheet headers.', f'Ok', [(expected_structure_headers,
                         t_structure_headers)])
 
         # Check 2
-        self.data_check(f'  Check structure worksheet section_types are correct.', f'OK', [(expected_structure_headers,
+        self.data_check(f'  Check structure worksheet section_types are correct.', f'Ok', [(expected_structure_headers,
                         t_structure_section_types)])
 
         # Check 3
-        self.data_check(f'  Check structure worksheet section_contain details are correct.', f'OK',
+        self.data_check(f'  Check structure worksheet section_contain details are correct.', f'Ok',
                         [(t_data_section_types, t_structure_section_contains)])
 
         for row in self.t_structure_df.itertuples():
@@ -548,13 +546,13 @@ class Laundry:
             print_verbose(f'\tCheck section break details', end='...', **OUTPUT_TEXT)
             if row.section_break is None:
                 self.batch_df.at[row.Index, 'section_break'] = False
-            print_verbose(f'OK', **OUTPUT_TEXT)
+            print_verbose(f'Ok', **OUTPUT_TEXT)
 
             # Check 6.
             print_verbose(f'\tCheck page break details', end='...', **OUTPUT_TEXT)
             if row.page_break is None:
                 self.batch_df.at[row.Index, 'page_break'] = False
-            print_verbose(f'OK', **OUTPUT_TEXT)
+            print_verbose(f'Ok', **OUTPUT_TEXT)
 
     def check_data_worksheet_data(self):
         """
