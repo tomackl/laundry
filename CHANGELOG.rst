@@ -1,3 +1,12 @@
+2020.2.1
+========
+
+Features
+--------
+
+* Verbose option provided as CLI option. If set to false will limit the output to the CLI.
+* Bug fixes
+
 2020.1.3
 ========
 

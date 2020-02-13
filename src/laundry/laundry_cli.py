@@ -38,11 +38,15 @@ def cli():
               help="The row number of the cell_data worksheet's row containing the column "
                    "headers. The default is 0."
               )
+@click.option('--verbose', '-v', 'verbose',
+              default=True,
+              type=bool,
+              help="Flag to allow verbose output to the CLI for fault finding issues. The default is True.")
 @click.argument('input_file',
                 type=click.Path(exists=True)
                 )
 @click.argument('output_file')
-def single(input_file: str, output_file: str, data: str, structure: str, template: str, data_head: int):
+def single(input_file: str, output_file: str, data: str, structure: str, template: str, data_head: int, verbose: bool):
     """
     Run laundry on a single worksheet.
 
@@ -59,8 +63,9 @@ def single(input_file: str, output_file: str, data: str, structure: str, templat
     wkst_data: str = data
     wkst_struct: str = structure
     template: str = template
+    verbose: bool = verbose
     Laundry(file_input, data_worksheet=wkst_data, structure_worksheet=wkst_struct, template_file=template,
-            header_row=data_head, output_file=file_output)
+            header_row=data_head, output_file=file_output, verbose=verbose)
 
 
 @cli.command()
@@ -70,13 +75,18 @@ def single(input_file: str, output_file: str, data: str, structure: str, templat
                    'worksheet defines the structure and cell_data worksheets and '
                    'other higher level formatting details. The default batch '
                    'worksheet name is "_batch".')
+@click.option('--verbose', '-v', 'verbose',
+              default=True,
+              type=bool,
+              help="Flag to allow verbose output to the CLI for fault finding issues. The default is True.")
 @click.argument('input_file',
                 type=click.Path(exists=True)
                 )
-def multi(input_file: (Path, str), batch: str):
+def multi(input_file: (Path, str), batch: str, verbose: bool):
     """
     Run Laundry on multiple worksheets.
     """
     file_input: Path = Path(input_file)
     wksht_batch: str = batch
-    Laundry(file_input, batch_worksheet=wksht_batch)
+    verbose: bool = verbose
+    Laundry(file_input, batch_worksheet=wksht_batch, verbose=verbose)

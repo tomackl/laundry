@@ -200,7 +200,6 @@ class SingleLoad:
             if sect_type_element in ['heading', 'para', 'paragraph']:
                 # removed .lower() from the string passed to the insert_paragraph call
                 self.insert_paragraph(str(row[sect_contains_element]), title=sect_contains_element.title(),
-                # self.insert_paragraph(str(row[sect_contains_element]).lower(), title=sect_contains_element.title(),
                                       section_style=sect_style_element, title_style=title_style_element)
 
             elif sect_type_element == 'table':
@@ -280,7 +279,8 @@ class SingleLoad:
 class Laundry:
     def __init__(self, input_fp: Path, data_worksheet: str = None, structure_worksheet: str = None,
                  batch_worksheet: str = None, header_row: int = 0, drop_empty_columns: bool = None,
-                 template_file: str = None, filter_rows: str = None, output_file: (Path, str) = None):
+                 template_file: str = None, filter_rows: str = None, output_file: (Path, str) = None,
+                 verbose: bool = True):
         """
         Instantiating the class will run error checking on the passed information, checking for the following steps:
         1. A basic check that worksheet names have been passed.
@@ -295,12 +295,15 @@ class Laundry:
         :param structure_worksheet: The name of the worksheet containing the output document's structure.
         :param batch_worksheet: The name of the worksheet containing the batch data.
         :param header_row: 
-        :param drop_empty_columns: An explicit tag to drop empty rows from the worksheet if they contain two or more empty
-        cells. If this is left as None it will be automatically set to True for the data worksheet.
+        :param drop_empty_columns: An explicit tag to drop empty rows from the worksheet if they contain two or more
+        empty cells. If this is left as None it will be automatically set to True for the data worksheet.
         :param template_file: 
         :param filter_rows: 
         :param output_file:
         """
+        self.output_verbose: bool = verbose
+        # todo: remove the line below
+        print(f'Versbose is set to: {verbose}.')
         # Step 1: Basic data checking.
         t_sheets_expected = remove_from_iterable([data_worksheet, structure_worksheet, batch_worksheet], None)
         print_verbose('Check: Worksheets are present:', **OUTPUT_TITLE)
