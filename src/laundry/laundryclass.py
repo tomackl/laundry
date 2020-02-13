@@ -198,7 +198,9 @@ class SingleLoad:
             page_break_element: bool = structure_element.page_break
 
             if sect_type_element in ['heading', 'para', 'paragraph']:
-                self.insert_paragraph(str(row[sect_contains_element]).lower(), title=sect_contains_element.title(),
+                # removed .lower() from the string passed to the insert_paragraph call
+                self.insert_paragraph(str(row[sect_contains_element]), title=sect_contains_element.title(),
+                # self.insert_paragraph(str(row[sect_contains_element]).lower(), title=sect_contains_element.title(),
                                       section_style=sect_style_element, title_style=title_style_element)
 
             elif sect_type_element == 'table':
