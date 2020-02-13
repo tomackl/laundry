@@ -32,18 +32,21 @@ def exit_app():
     sys_exit()
 
 
-def print_verbose(text: (str, Exception), fore_colour: str = 'RESET', back_colour: str = 'RESET',
+def print_verbose(text: (str, Exception), verbose: bool, fore_colour: str = 'RESET', back_colour: str = 'RESET',
                   style_colour: str = 'NORMAL', end: str = '\n', flush: bool = True):
     """
-
-    :param text:
-    :param fore_colour:
-    :param back_colour:
-    :param style_colour:
+    A function to provide clearer informaiton to the user at the command line.
+    :param text: Text to be printed
+    :param verbose: Is the text to be output.
+    :param fore_colour: The text's colour.
+    :param back_colour: The background colour.
+    :param style_colour: The text style.
     :param end:
     :param flush:
     :return:
     """
+    if verbose is False:
+        return
     fore = {'BLACK': Fore.BLACK, 'RED': Fore.RED, 'GREEN': Fore.GREEN, 'YELLOW': Fore.YELLOW, 'BLUE': Fore.BLUE,
             'MAGENTA': Fore.MAGENTA, 'CYAN': Fore.CYAN, 'WHITE': Fore.WHITE, 'RESET': Fore.RESET}
 
@@ -118,7 +121,7 @@ def resolve_file_path(path: (Path, str)) -> (Path, Exception):
         p = Path(q).resolve(strict=True)
         return p
     except Exception as e:
-        print_verbose(f'{e}', **EXCEPTION_TEXT)
+        print_verbose(f'{e}', True, **EXCEPTION_TEXT)
 
 
 def values_exist(expected: set, actual: set) -> bool:
@@ -179,7 +182,7 @@ class SingleLoad:
         for row in self._data.itertuples():
             self.format_docx(row)
 
-        print_verbose(f'\nDocument {self._file_output} completed', **OUTPUT_SUCCESS)
+        print_verbose(f'\nDocument {self._file_output} completed', True, **OUTPUT_SUCCESS)
 
     def format_docx(self, row: NamedTuple):
         """
@@ -302,26 +305,24 @@ class Laundry:
         :param output_file:
         """
         self.output_verbose: bool = verbose
-        # todo: remove the line below
-        print(f'Versbose is set to: {verbose}.')
         # Step 1: Basic data checking.
         t_sheets_expected = remove_from_iterable([data_worksheet, structure_worksheet, batch_worksheet], None)
-        print_verbose('Check: Worksheets are present:', **OUTPUT_TITLE)
+        print_verbose('Check: Worksheets are present:', verbose=self.output_verbose, **OUTPUT_TITLE)
         if len(t_sheets_expected) == 0:
             raise ValueError(f'Either the "data" and "structure" worksheets, or the "batch" worksheet must be '
                              f'provided.')
         sheet = enumerate(t_sheets_expected, 1)
         for item, sht in sheet:
-            print_verbose(f'  Sheet {item}:\t{sht}', **OUTPUT_TEXT)
+            print_verbose(f'  Sheet {item}:\t{sht}', verbose=self.output_verbose, **OUTPUT_TEXT)
 
         # Step 2: Confirm the input file exists.
         self._input_fp: (Path, str) = ''
         try:
-            print_verbose(f'Check: Resolving spreadsheet filepath: ', **OUTPUT_TITLE)
+            print_verbose(f'Check: Resolving spreadsheet filepath: ', verbose=self.output_verbose, **OUTPUT_TITLE)
             self._input_fp = resolve_file_path(input_fp)
-            print_verbose(f'  {self._input_fp}', **OUTPUT_TEXT)
+            print_verbose(f'  {self._input_fp}', verbose=self.output_verbose, **OUTPUT_TEXT)
         except Exception as e:
-            print_verbose(f'\t{e}: File {input_fp} does not exist.', **EXCEPTION_TEXT)
+            print_verbose(f'\t{e}: File {input_fp} does not exist.', True, **EXCEPTION_TEXT)
 
         # Load the Excel file into memory.
         self._washing_basket = pd.ExcelFile(self._input_fp)
@@ -336,13 +337,13 @@ class Laundry:
 
         #  Step 3: Check that the data, structure and batch worksheet names passed exist within the file.
         try:
-            print_verbose(f'Check Worksheets exist in spreadsheet: ', **OUTPUT_TITLE)
+            print_verbose(f'Check Worksheets exist in spreadsheet: ', verbose=self.output_verbose, **OUTPUT_TITLE)
             self.compare_lists(t_sheets_expected, self._sheets_actual)
             t_sht_actual = enumerate(self._sheets_actual, 1)
             for item, sht in t_sht_actual:
-                print_verbose(f'  Sheet {item}:\t {sht}', **OUTPUT_TEXT)
+                print_verbose(f'  Sheet {item}:\t {sht}', verbose=self.output_verbose, **OUTPUT_TEXT)
         except Exception as e:
-            print_verbose(f'{e}', **EXCEPTION_TEXT)
+            print_verbose(f'{e}', True, **EXCEPTION_TEXT)
 
         # Step 4. If the batching information is passed to the object at instantiation, then merge this into a
         #   dictionary. Error checking will be completed later.
@@ -375,14 +376,14 @@ class Laundry:
 
         # Step 6. Check the batch data.
         try:
-            print_verbose(f'Batch worksheet data', **DATAFRAME_TITLE)
-            print_verbose(f'{self.batch_df}', **DATAFRAME_TEXT)
-            print_verbose(f'Check: Batch worksheet data', **OUTPUT_TITLE)
+            print_verbose(f'Batch worksheet data', verbose=self.output_verbose, **DATAFRAME_TITLE)
+            print_verbose(f'{self.batch_df}', verbose=self.output_verbose, **DATAFRAME_TEXT)
+            print_verbose(f'Check: Batch worksheet data', verbose=self.output_verbose, **OUTPUT_TITLE)
             self.check_batch_worksheet_data()
-            print_verbose(f'Batch data checked', **OUTPUT_TITLE)
+            print_verbose(f'Batch data checked', verbose=self.output_verbose, **OUTPUT_TITLE)
         except Exception as e:
-            print_verbose(f'{e}', **EXCEPTION_TEXT)
-            # exit_app()
+            print_verbose(f'{e}', True, **EXCEPTION_TEXT)
+            exit_app()
 
         # Step 6. Convert the batch DataFrame to a dict and store.
         self._batch_dict = self.batch_df.to_dict('records')
@@ -457,55 +458,59 @@ class Laundry:
 
         # Check 3.
         for row in self.batch_df.itertuples():
-            print_verbose(f'  Row {row.Index}:', **OUTPUT_TITLE)
-            print_verbose(f'\tTemplate file {row.template_file}.', end='...', **OUTPUT_TEXT)
+            print_verbose(f'  Row {row.Index}:', verbose=self.output_verbose, **OUTPUT_TITLE)
+            print_verbose(f'\tTemplate file {row.template_file}.', verbose=self.output_verbose,
+                          end='...', **OUTPUT_TEXT)
             try:
                 if row.template_file not in invalid:
                     fp_template = resolve_file_path(row.template_file)
                     self.batch_df.at[row.Index, 'template_file'] = fp_template
-                    print_verbose(f"{self.batch_df.at[row.Index, 'template_file']}", **OUTPUT_TEXT)
+                    print_verbose(f"{self.batch_df.at[row.Index, 'template_file']}", verbose=self.output_verbose,
+                                  **OUTPUT_TEXT)
             except ValueError as v:
                 print_verbose(f'{v}: Row {row.Index} - Template file {row.template_file} does not exist at the given '
-                              f'location.', **EXCEPTION_TEXT)
+                              f'location.', True, **EXCEPTION_TEXT)
             except Exception as e:
-                print_verbose(f'{e}: Row {row.Index}\n{row}', **EXCEPTION_TEXT)
+                print_verbose(f'{e}: Row {row.Index}\n{row}', True, **EXCEPTION_TEXT)
 
             # Check 4.
-            print_verbose(f'\tCheck output filename {row.output_file}.', end='...', **OUTPUT_TEXT)
+            print_verbose(f'\tCheck output filename {row.output_file}.', verbose=self.output_verbose, end='...',
+                          **OUTPUT_TEXT)
             if str(row.output_file) in invalid:
                 raise ValueError(f'The name of the output file has not been provided.')
             try:
                 fp_name = str(Path(row.output_file).name)
                 fp_output = Path(resolve_file_path(Path(row.output_file).parent)).joinpath(fp_name)
                 self.batch_df.at[row.Index, 'output_file'] = fp_output
-                print_verbose(f"{self.batch_df.at[row.Index, 'output_file']}", **OUTPUT_TEXT)
+                print_verbose(f"{self.batch_df.at[row.Index, 'output_file']}", verbose=self.output_verbose,
+                              **OUTPUT_TEXT)
             except FileNotFoundError as f:
                 print_verbose(f'{f}.  Row {row.Index} - Output file {row.output_file} directory does not exist at the '
-                              f'given loaction.', **EXCEPTION_TEXT)
+                              f'given loaction.', True, **EXCEPTION_TEXT)
             except Exception as e:
-                print_verbose(f'{e}: Row {row.Index}\n{row}', **EXCEPTION_TEXT)
+                print_verbose(f'{e}: Row {row.Index}\n{row}', True, **EXCEPTION_TEXT)
 
             # Check 5.
-            print_verbose(f'\tCheck row filters:', end='...', **OUTPUT_TEXT)
+            print_verbose(f'\tCheck row filters:', end='...', verbose=self.output_verbose, **OUTPUT_TEXT)
             if str(row.filter_rows).lower() not in invalid and row.filter_rows is not None:
                 self.batch_df.at[row.Index, 'filter_rows'] = self.prepare_row_filters(row.filter_rows)
-                print_verbose(f'Ok', **OUTPUT_TEXT)
+                print_verbose(f'Ok', verbose=self.output_verbose, **OUTPUT_TEXT)
             else:
-                print_verbose(f'Ok. No filters exist.', **OUTPUT_TEXT)
+                print_verbose(f'Ok. No filters exist.', verbose=self.output_verbose, **OUTPUT_TEXT)
 
             # Check 6.
-            print_verbose(f'\tCheck drop empty columns', end='...', **OUTPUT_TEXT)
+            print_verbose(f'\tCheck drop empty columns', verbose=self.output_verbose, end='...', **OUTPUT_TEXT)
             if row.drop_empty_columns is None:
                 self.batch_df.at[row.Index, 'drop_empty_columns'] = False
-                print_verbose(f'Ok', **OUTPUT_TEXT)
+                print_verbose(f'Ok', verbose=self.output_verbose, **OUTPUT_TEXT)
             else:
-                print_verbose(f'Ok', **OUTPUT_TEXT)
+                print_verbose(f'Ok', verbose=self.output_verbose, **OUTPUT_TEXT)
 
             # Check 7
-            print_verbose(f'\tCheck header row details', end='...', **OUTPUT_TEXT)
+            print_verbose(f'\tCheck header row details', verbose=self.output_verbose, end='...', **OUTPUT_TEXT)
             if row.header_row is None:
                 self.batch_df.at[row.Index, 'header_row'] = 0
-            print_verbose(f'Ok', **OUTPUT_TEXT)
+            print_verbose(f'Ok', verbose=self.output_verbose, **OUTPUT_TEXT)
 
     def check_structure_worksheet_data(self):
         """
@@ -543,31 +548,33 @@ class Laundry:
             if 'photo' == str(row.section_type).lower():
                 root = self._input_fp.parent
                 try:
-                    print_verbose(f'  Row {row.Index}: Check file {row.path}', **OUTPUT_TEXT)
+                    print_verbose(f'  Row {row.Index}: Check file {row.path}', verbose=self.output_verbose,
+                                  **OUTPUT_TEXT)
                     t_photo_path = resolve_file_path(root.joinpath(row.path))
                     if t_photo_path.is_dir():
                         self.batch_df.at[row.Index, 'path'] = t_photo_path
                         # Add the photo path to the dictionary with the section_contains as the key
                         self.t_structure_photo_path[row.section_contains] = t_photo_path
-                    print_verbose(f'\t{self.t_structure_photo_path[row.section_contains]}', **OUTPUT_TEXT)
+                    print_verbose(f'\t{self.t_structure_photo_path[row.section_contains]}', verbose=self.output_verbose,
+                                  **OUTPUT_TEXT)
 
                 except ValueError as v:
                     print_verbose(f'{v}: Row {row.Index} - Photo directory {row.path} cannot be found at the given '
-                                  f'locaton.', **EXCEPTION_TEXT)
+                                  f'locaton.', True, **EXCEPTION_TEXT)
                 except Exception as e:
-                    print_verbose(f'{e}: Row {row.Index}\n{row}', **EXCEPTION_TEXT)
+                    print_verbose(f'{e}: Row {row.Index}\n{row}', True, **EXCEPTION_TEXT)
 
             # Check 5.
-            print_verbose(f'\tCheck section break details', end='...', **OUTPUT_TEXT)
+            print_verbose(f'\tCheck section break details', verbose=self.output_verbose, end='...', **OUTPUT_TEXT)
             if row.section_break is None:
                 self.batch_df.at[row.Index, 'section_break'] = False
-            print_verbose(f'Ok', **OUTPUT_TEXT)
+            print_verbose(f'Ok', verbose=self.output_verbose, **OUTPUT_TEXT)
 
             # Check 6.
-            print_verbose(f'\tCheck page break details', end='...', **OUTPUT_TEXT)
+            print_verbose(f'\tCheck page break details', verbose=self.output_verbose, end='...', **OUTPUT_TEXT)
             if row.page_break is None:
                 self.batch_df.at[row.Index, 'page_break'] = False
-            print_verbose(f'Ok', **OUTPUT_TEXT)
+            print_verbose(f'Ok', verbose=self.output_verbose, **OUTPUT_TEXT)
 
     def check_data_worksheet_data(self):
         """
@@ -581,10 +588,11 @@ class Laundry:
         # Assuming that that there may be more than one directory containing photos for the worksheet loop through the
         # each folder.
         columns = self.t_structure_photo_path.keys()
-        print_verbose(f'  Photos are located in the following data worksheet columns:', **OUTPUT_TEXT)
+        print_verbose(f'  Photos are located in the following data worksheet columns:', verbose=self.output_verbose,
+                      **OUTPUT_TEXT)
         t_columns = enumerate(columns, 1)
         for item, col in t_columns:
-            print_verbose(f'\t{item}\t{col}', **OUTPUT_TEXT)
+            print_verbose(f'\t{item}\t{col}', verbose=self.output_verbose, **OUTPUT_TEXT)
 
         # Grab the photos stored in the folders and store their paths in dictionary. Store them in the dictionary
         # with their name minus the file extension as the key.
@@ -600,18 +608,18 @@ class Laundry:
                 col = str(col).lower()
                 t_row = row._asdict()
                 t_row_photo = []
-                print_verbose(f'  Row {row.Index}:', **OUTPUT_TITLE)
+                print_verbose(f'  Row {row.Index}:', verbose=self.output_verbose, **OUTPUT_TITLE)
                 if str(t_row[col]).lower() not in ['no photo', 'none', 'nan', '-']:
                     for t in split_str(t_row[col]):
                         try:
                             t_row_photo.append(self.check_photo_paths(t, t_photos_found))
                         except Exception as e:
-                            print_verbose(f'{e}: Row {row.Index} - {t_row[col]}', **EXCEPTION_TEXT)
+                            print_verbose(f'{e}: Row {row.Index} - {t_row[col]}', True, **EXCEPTION_TEXT)
                         self.t_data_df.at[t_row['Index'], col] = t_row_photo
                 if isinstance(self.t_data_df.at[t_row['Index'], col], Iterable):
                     for fp in self.t_data_df.at[t_row['Index'], col]:
                         if isinstance(fp, Path):
-                            print_verbose(f'\t{str(fp)}', **OUTPUT_TEXT)
+                            print_verbose(f'\t{str(fp)}', verbose=self.output_verbose, **OUTPUT_TEXT)
 
     @staticmethod
     def check_photo_paths(expected_photo: (Path, str), actual_photos: dict) -> Path:
@@ -638,7 +646,7 @@ class Laundry:
                     if actual_photos[t_photo_name]:
                         return Path(actual_photos[t_photo_name]).resolve(strict=True)
                 except KeyError as k:
-                    print_verbose(f'{k}', **EXCEPTION_TEXT)
+                    print_verbose(f'{k}', True, **EXCEPTION_TEXT)
             raise ValueError(f'The photo {photo} does not exist in the specified directory.')
         # Check 3
         elif Path(photo).suffix in photo_formats:
@@ -646,7 +654,7 @@ class Laundry:
                 if actual_photos[photo]:
                     return Path(actual_photos[photo]).resolve(strict=True)
             except KeyError as k:
-                print_verbose(f'{k}. The photo {photo} does not exist in the directory.', **EXCEPTION_TEXT)
+                print_verbose(f'{k}. The photo {photo} does not exist in the directory.', True, **EXCEPTION_TEXT)
 
         raise ValueError(f'The photo {photo} does not appear to exist in the directory.')
 
@@ -668,12 +676,12 @@ class Laundry:
             try:
                 df = df.clean_names()
             except KeyError as k:
-                print_verbose(f'{k}', **EXCEPTION_TEXT)
+                print_verbose(f'{k}', True, **EXCEPTION_TEXT)
         if drop_empty_rows is True:
             try:
                 df = df.dropna(thresh=2)
             except KeyError as k:
-                print_verbose(f'{k}', **EXCEPTION_TEXT)
+                print_verbose(f'{k}', True, **EXCEPTION_TEXT)
         return df
 
     @staticmethod
@@ -716,44 +724,42 @@ class Laundry:
 
     def data_check(self, check_text: str, success_text: str, comparision_list: List[tuple], compare: str):
         """
-
         :param check_text:
         :param success_text:
         :param comparision_list:
-
+        :param compare:
         :return:
         """
         try:
-            print_verbose(f'{check_text}', end='...', **OUTPUT_TEXT)
+            print_verbose(f'{check_text}', verbose=self.output_verbose, end='...', **OUTPUT_TEXT)
             if compare is 'subset':
                 for expected, actual in comparision_list:
                     self.compare_lists(expected, actual)
             if compare is 'part':
                 for expected, actual in comparision_list:
                     self.in_lists(expected, actual)
-            print_verbose(f'{success_text}', **OUTPUT_TEXT)
+            print_verbose(f'{success_text}', verbose=self.output_verbose, **OUTPUT_TEXT)
         except ValueError as v:
-            print_verbose(f'\nValueError:\n{v}', **EXCEPTION_TEXT)
+            print_verbose(f'\nValueError:\n{v}', True, **EXCEPTION_TEXT)
             exit_app()
         except Exception as e:
-            print_verbose(f'General exception {e}', **EXCEPTION_TEXT)
+            print_verbose(f'General exception {e}', True, **EXCEPTION_TEXT)
             exit_app()
 
-    def check_dataframe(self, title: str, check_dataframe: pd.DataFrame, worksht_title: str, method,
+    def check_dataframe(self, title: str, check_dataframe: pd.DataFrame, worksht_title: str, check_method,
                         complete_check: str, check_worksheet: str = '', exception_text: str = ''):
         try:
-            print_verbose(f'{title}: {check_worksheet}', **DATAFRAME_TITLE)
-            print_verbose(f'{check_dataframe}', **DATAFRAME_TEXT)
-            print_verbose(f'{worksht_title}: {check_worksheet}', **OUTPUT_TITLE)
-            method()
-            print_verbose(f'{complete_check}: {check_worksheet}', **OUTPUT_TITLE)
+            print_verbose(f'{title}: {check_worksheet}', verbose=self.output_verbose, **DATAFRAME_TITLE)
+            print_verbose(f'{check_dataframe}', verbose=self.output_verbose, **DATAFRAME_TEXT)
+            print_verbose(f'{worksht_title}: {check_worksheet}', verbose=self.output_verbose, **OUTPUT_TITLE)
+            check_method()
+            print_verbose(f'{complete_check}: {check_worksheet}', verbose=self.output_verbose, **OUTPUT_TITLE)
         except KeyError as k:
-            print_verbose(f'KeyError {k}: ', **EXCEPTION_TEXT)
+            print_verbose(f'KeyError {k}: ', True, **EXCEPTION_TEXT)
             exit_app()
         except ValueError as v:
-            print_verbose(f'\nValueError {v}: \n',
-                          **EXCEPTION_TEXT)
+            print_verbose(f'\nValueError {v}: \n', True, **EXCEPTION_TEXT)
             exit_app()
         except Exception as e:
-            print_verbose(f'{e}: ', **EXCEPTION_TEXT)
+            print_verbose(f'{e}: ', True, **EXCEPTION_TEXT)
             exit_app()
