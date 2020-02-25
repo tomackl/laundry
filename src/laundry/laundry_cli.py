@@ -90,3 +90,12 @@ def multi(input_file: (Path, str), batch: str, verbose: bool):
     wksht_batch: str = batch
     verbose: bool = verbose
     Laundry(file_input, batch_worksheet=wksht_batch, verbose=verbose)
+
+
+@cli.command()
+def template():
+    """
+    Autogenerate a working .xlsx template that can be used by the user.
+    The exported file will be a blank file containing the required '_batch' and '_structure' worksheet formats.
+    """
+    Laundry(None, template_generate=True)

@@ -4,6 +4,14 @@
 Features
 --------
 
+* Added 'template' CLI command to allow the automatic generation of a blank template.
+
+2020.2.1
+========
+
+Features
+--------
+
 * Verbose option provided as CLI option. If set to false will limit the output to the CLI.
 * Bug fixes
 

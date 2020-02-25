@@ -283,7 +283,7 @@ class Laundry:
     def __init__(self, input_fp: Path, data_worksheet: str = None, structure_worksheet: str = None,
                  batch_worksheet: str = None, header_row: int = 0, drop_empty_columns: bool = None,
                  template_file: str = None, filter_rows: str = None, output_file: (Path, str) = None,
-                 verbose: bool = True):
+                 verbose: bool = True, template_generate: bool = False):
         """
         Instantiating the class will run error checking on the passed information, checking for the following steps:
         1. A basic check that worksheet names have been passed.
@@ -303,7 +303,13 @@ class Laundry:
         :param template_file: 
         :param filter_rows: 
         :param output_file:
+        :param verbose:
+        :param template_generate:
         """
+        if template_generate:
+            # Generate the template spreadsheet and exit the app.
+            self.generate_tempate_document()
+
         self.output_verbose: bool = verbose
         # Step 1: Basic data checking.
         t_sheets_expected = remove_from_iterable([data_worksheet, structure_worksheet, batch_worksheet], None)
@@ -419,6 +425,18 @@ class Laundry:
             self.wash_load(t_batch_row.template_file, t_batch_row.output_file)
 
             del self.t_structure_photo_path
+
+    def generate_tempate_document(self):
+        """
+        Generate a blank teamplate
+        :return:
+        """
+        df_batch = pd.DataFrame(columns=expected_batch_headers)
+        df_structure = pd.DataFrame(columns=expected_structure_headers)
+        with pd.ExcelWriter('Laundry_template.xlsx') as writer:
+            df_batch.to_excel(writer, sheet_name='_batch')
+            df_structure.to_excel(writer, sheet_name='_structure')
+        exit_app()
 
     def wash_load(self, template_file: Path, output_file: Path):
         """
