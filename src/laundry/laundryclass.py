@@ -479,8 +479,8 @@ class Laundry:
         # Check 3.
         for row in self.batch_df.itertuples():
             print_verbose(f'  Row {row.Index}:', verbose=self.output_verbose, **OUTPUT_TITLE)
-            print_verbose(f'\tTemplate file {row.template_file}.', verbose=self.output_verbose,
-                          end='...', **OUTPUT_TEXT)
+            print_verbose(f'\tTemplate file {row.template_file}.', verbose=self.output_verbose, end='...',
+                          **OUTPUT_TEXT)
             try:
                 if row.template_file not in invalid:
                     fp_template = resolve_file_path(row.template_file)
@@ -545,9 +545,8 @@ class Laundry:
         t_structure_headers = list(self.t_structure_df)
 
         # Check 1
-        self.data_check(f'  Check structure work sheet headers', f'Ok', [(EXPECTED_STRUCTURE_HEADERS,
-                                                                          t_structure_headers)], compare='subset')
-
+        self.data_check(f'  Check structure work sheet headers', f'Ok',
+                        [(EXPECTED_STRUCTURE_HEADERS, t_structure_headers)], compare='subset')
         t_structure_section_types = list(self.t_structure_df.loc[:, 'section_type'])
         t_data_section_types = list(self.t_data_df)
 
