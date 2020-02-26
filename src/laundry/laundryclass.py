@@ -14,11 +14,11 @@ from sys import exit as sys_exit
 colorama_init(autoreset=True)
 
 # Define headers for the batch and structure worksheets. These are fixed.
-expected_batch_headers = ['data_worksheet', 'structure_worksheet', 'header_row', 'drop_empty_columns', 'template_file',
+EXPECTED_BATCH_HEADERS = ['data_worksheet', 'structure_worksheet', 'header_row', 'drop_empty_columns', 'template_file',
                           'filter_rows', 'output_file']
-expected_structure_headers = ['section_type', 'section_contains', 'section_style', 'title_style', 'section_break',
+EXPECTED_STRUCTURE_HEADERS = ['section_type', 'section_contains', 'section_style', 'title_style', 'section_break',
                               'page_break', 'path']
-expected_section_types = ['heading', 'table', 'para', 'photo']
+EXPECTED_SECTION_TYPES = ['heading', 'table', 'para', 'photo']
 OUTPUT_TITLE = {'fore_colour': 'GREEN', 'style_colour': 'BRIGHT'}
 OUTPUT_TEXT = {'fore_colour': 'GREEN', 'style_colour': 'DIM'}
 EXCEPTION_TEXT = {'fore_colour': 'RED', 'style_colour': 'BRIGHT'}
@@ -428,14 +428,16 @@ class Laundry:
 
     def generate_tempate_document(self):
         """
-        Generate a blank teamplate
+        Generate a blank teamplate.
         :return:
         """
-        df_batch = pd.DataFrame(columns=expected_batch_headers)
-        df_structure = pd.DataFrame(columns=expected_structure_headers)
+        df_batch = pd.DataFrame(columns=EXPECTED_BATCH_HEADERS)
+        series_section_type = {key: '' for key in EXPECTED_STRUCTURE_HEADERS}
+        series_section_type['section_type'] = EXPECTED_SECTION_TYPES
+        df_structure = pd.DataFrame.from_dict(series_section_type)
         with pd.ExcelWriter('Laundry_template.xlsx') as writer:
-            df_batch.to_excel(writer, sheet_name='_batch')
-            df_structure.to_excel(writer, sheet_name='_structure')
+            df_batch.to_excel(writer, sheet_name='_batch', index=False)
+            df_structure.to_excel(writer, sheet_name='_structure', index=False)
         exit_app()
 
     def wash_load(self, template_file: Path, output_file: Path):
@@ -466,7 +468,7 @@ class Laundry:
         t_batch_structure_worksheets_expected = list(self.batch_df.loc[:, 'structure_worksheet'])
 
         # Check 1.
-        self.data_check(f'\tBatch work sheet headers.', f'Ok', [(expected_batch_headers, t_batch_headers)],
+        self.data_check(f'\tBatch work sheet headers.', f'Ok', [(EXPECTED_BATCH_HEADERS, t_batch_headers)],
                         compare='subset')
 
         # Check 2.
@@ -543,8 +545,8 @@ class Laundry:
         t_structure_headers = list(self.t_structure_df)
 
         # Check 1
-        self.data_check(f'  Check structure work sheet headers', f'Ok', [(expected_structure_headers,
-                        t_structure_headers)], compare='subset')
+        self.data_check(f'  Check structure work sheet headers', f'Ok', [(EXPECTED_STRUCTURE_HEADERS,
+                                                                          t_structure_headers)], compare='subset')
 
         t_structure_section_types = list(self.t_structure_df.loc[:, 'section_type'])
         t_data_section_types = list(self.t_data_df)
@@ -555,7 +557,7 @@ class Laundry:
             for item in split_str(each):
                 t_structure_section_contains.append(item)
         self.data_check(f'  Check structure worksheet section_types are correct.', f'Ok',
-                        [(expected_section_types, t_structure_section_types)], compare='part')
+                        [(EXPECTED_SECTION_TYPES, t_structure_section_types)], compare='part')
 
         # Check 3
         self.data_check(f'  Check structure worksheet section_contain details are correct.', f'Ok',
