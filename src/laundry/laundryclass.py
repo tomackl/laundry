@@ -438,6 +438,7 @@ class Laundry:
         with pd.ExcelWriter('Laundry_template.xlsx') as writer:
             df_batch.to_excel(writer, sheet_name='_batch', index=False)
             df_structure.to_excel(writer, sheet_name='_structure', index=False)
+        print_verbose('Template file saved.', verbose=True, **OUTPUT_TEXT)
         exit_app()
 
     def wash_load(self, template_file: Path, output_file: Path):
