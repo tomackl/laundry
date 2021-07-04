@@ -3,7 +3,7 @@ Constants associated with Laundry/
 """
 from typing import NewType
 import pandas as pd
-laundry_version = '2020.2.2'
+laundry_version = '2020.7.4'
 
 data_frame = NewType('data_frame', pd.DataFrame)
 invalid = ['nan', 'None', 'NA', 'N/A', 'False', 'Nil']

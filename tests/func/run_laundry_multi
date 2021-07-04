@@ -1,2 +1,2 @@
 clear
-laundry multi -v false ../../resources/input_files/Multi_Verification_Spreadsheet.xlsx
+laundry multi -v false ./resources/input_files/Multi_Verification_Spreadsheet.xlsx

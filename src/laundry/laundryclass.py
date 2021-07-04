@@ -142,10 +142,28 @@ def remove_from_iterable(values: Iterable, *args) -> List:
 
 
 def strip_whitespace(wht_spc: List) -> List:
+    """
+    Strip whitespace from items in a list.
+    :param wht_spc:
+    :return: list
+    """
     i = []
     for each in wht_spc:
         i.append(each.strip())
     return i
+
+
+def listify(list_of_items: List) -> str:
+    # todo: add comments changelog
+    """
+    Convert list into a dot point list.
+    :param list_of_items:
+    :return: str
+    """
+    output = ''
+    for each in list_of_items:
+        output = output + f"\t- {each}\n"
+    return output
 
 
 class SingleLoad:
@@ -728,17 +746,30 @@ class Laundry:
         expected_list = sorted(expected_list)
         actual_list = sorted(actual_list)
         if set(expected_list).issubset(set(actual_list)) is False:
+            # _ = []
+            # for each in actual_list:
+            #     if each not in expected_list:
+            #         _.append(each)
+            # expected = listify(expected_list)
+            # missing = listify(_)
             raise ValueError(f'The provided headers:\n\t{actual_list}\ndo not match the required headers'
                              f'\n\t{expected_list}.')
+            # raise ValueError(f'The following headers are missing from the expected headers:\n{missing}\n'
+            #                  f'The expected headers are:\n{expected}')
         else:
             return True
 
     @staticmethod
     def in_lists(expected_list, actual_list):
+        _ = []
         for each in actual_list:
             if each.lower() not in expected_list:
-                raise ValueError(f'The provided headers:\n\t{actual_list}\ndo not match the required headers'
-                                 f'\n\t{expected_list}.')
+                # raise ValueError(f'The provided headers:\n\t{actual_list}\ndo not match the required headers'
+                #                  f'\n\t{expected_list}.')
+                _.append(each)
+        if len(_) > 0:
+            _ = listify(_)
+            raise ValueError(f'The following header cannot be found:\n{_}')
         else:
             return True
 
