@@ -1,7 +1,7 @@
 """Main class for laundry. This is intended to replace the original laundry script."""
 
-from laundry.constants import data_frame, invalid, photo_formats
-from typing import Dict, List, Iterable, Tuple, NamedTuple, Any
+from laundry.constants import data_frame, invalid, photo_formats, not_a_photo
+from typing import Dict, List, Iterable, Tuple, NamedTuple, Any, Tuple
 from docx import Document
 from docx.shared import Inches
 from pathlib import Path, PurePath
@@ -45,7 +45,7 @@ def print_verbose(text: (str, Exception), verbose: bool, fore_colour: str = 'RES
     :param flush:
     :return:
     """
-    if verbose is False:
+    if not verbose:
         return
     fore = {'BLACK': Fore.BLACK, 'RED': Fore.RED, 'GREEN': Fore.GREEN, 'YELLOW': Fore.YELLOW, 'BLUE': Fore.BLUE,
             'MAGENTA': Fore.MAGENTA, 'CYAN': Fore.CYAN, 'WHITE': Fore.WHITE, 'RESET': Fore.RESET}
@@ -76,9 +76,7 @@ def split_str(data_str: str) -> List[str]:
     elif ',' in data_str:
         return list(str(data_str).split(','))
     else:
-        i = list()
-        i.append(data_str)
-        return i
+        return [data_str]
 
 
 def sort_table_data(record: Dict, header: List[str], format_title: bool = True) -> List[Tuple]:
@@ -95,7 +93,9 @@ def sort_table_data(record: Dict, header: List[str], format_title: bool = True) 
     data_list: List[str] = []
     for each in header:
         hdr_data = remove_underscore(each)
-        if format_title is True:
+        # todo: remove line below
+        # if format_title is True:
+        if format_title:
             hdr_data = hdr_data.title()
         hdr_list.append(hdr_data)
         data_list.append(record.pop(each))
@@ -118,8 +118,7 @@ def resolve_file_path(path: (Path, str)) -> (Path, Exception):
     """
     q = str(path).replace('\\', '/')
     try:
-        p = Path(q).resolve(strict=True)
-        return p
+        return Path(q).resolve(strict=True)
     except Exception as e:
         print_verbose(f'{e}', True, **EXCEPTION_TEXT)
 
@@ -147,10 +146,7 @@ def strip_whitespace(wht_spc: List) -> List:
     :param wht_spc:
     :return: list
     """
-    i = []
-    for each in wht_spc:
-        i.append(each.strip())
-    return i
+    return [each.strip() for each in wht_spc]
 
 
 def listify(list_of_items: List) -> str:
@@ -160,10 +156,7 @@ def listify(list_of_items: List) -> str:
     :param list_of_items:
     :return: str
     """
-    output = ''
-    for each in list_of_items:
-        output = output + f"\t- {each}\n"
-    return output
+    return ''.join(f"\t- {each}\n" for each in list_of_items)
 
 
 class SingleLoad:
@@ -218,7 +211,7 @@ class SingleLoad:
             sect_break_element: bool = structure_element.section_break
             page_break_element: bool = structure_element.page_break
 
-            if sect_type_element in ['heading', 'para', 'paragraph']:
+            if sect_type_element in {'heading', 'para', 'paragraph'}:
                 # removed .lower() from the string passed to the insert_paragraph call
                 self.insert_paragraph(str(row[sect_contains_element]), title=sect_contains_element.title(),
                                       section_style=sect_style_element, title_style=title_style_element)
@@ -235,10 +228,10 @@ class SingleLoad:
             else:
                 print('Valid section header was not found.')
 
-            if sect_break_element is True:
+            if sect_break_element:
                 self.insert_paragraph('')
 
-            if page_break_element is True:
+            if page_break_element:
                 self._file_template.add_page_break()
 
     def insert_paragraph(self, text: str, title: str = None, section_style: str = None,
@@ -330,23 +323,13 @@ class Laundry:
 
         self.output_verbose: bool = verbose
         # Step 1: Basic data checking.
-        t_sheets_expected = remove_from_iterable([data_worksheet, structure_worksheet, batch_worksheet], None)
-        print_verbose('Check: Worksheets are present:', verbose=self.output_verbose, **OUTPUT_TITLE)
-        if len(t_sheets_expected) == 0:
-            raise ValueError(f'Either the "data" and "structure" worksheets, or the "batch" worksheet must be '
-                             f'provided.')
-        sheet = enumerate(t_sheets_expected, 1)
-        for item, sht in sheet:
-            print_verbose(f'  Sheet {item}:\t{sht}', verbose=self.output_verbose, **OUTPUT_TEXT)
+        self.t_sheets_expected = []
+        self.t_sheets_expected = remove_from_iterable([data_worksheet, structure_worksheet, batch_worksheet], None)
+        self.basic_data_check()
 
         # Step 2: Confirm the input file exists.
         self._input_fp: (Path, str) = ''
-        try:
-            print_verbose(f'Check: Resolving spreadsheet filepath: ', verbose=self.output_verbose, **OUTPUT_TITLE)
-            self._input_fp = resolve_file_path(input_fp)
-            print_verbose(f'  {self._input_fp}', verbose=self.output_verbose, **OUTPUT_TEXT)
-        except Exception as e:
-            print_verbose(f'\t{e}: File {input_fp} does not exist.', True, **EXCEPTION_TEXT)
+        self.confirm_input_file_exists(input_fp)
 
         # Load the Excel file into memory.
         self._washing_basket = pd.ExcelFile(self._input_fp)
@@ -360,28 +343,22 @@ class Laundry:
         self._batch: List[dict] = []
 
         #  Step 3: Check that the data, structure and batch worksheet names passed exist within the file.
-        try:
-            print_verbose(f'Check Worksheets exist in spreadsheet: ', verbose=self.output_verbose, **OUTPUT_TITLE)
-            self.compare_lists(t_sheets_expected, self._sheets_actual)
-            t_sht_actual = enumerate(self._sheets_actual, 1)
-            for item, sht in t_sht_actual:
-                print_verbose(f'  Sheet {item}:\t {sht}', verbose=self.output_verbose, **OUTPUT_TEXT)
-        except Exception as e:
-            print_verbose(f'{e}', True, **EXCEPTION_TEXT)
+        self.check_worksheet_names()
 
         # Step 4. If the batching information is passed to the object at instantiation, then merge this into a
         #   dictionary. Error checking will be completed later.
         # Step 4.1. If all the expected command line parameters are set to the defaults assume that the a batch
         #   approach has been used. We do _not_ test for batch since this will be tested for later.
-        input_arg = [data_worksheet, structure_worksheet, header_row, drop_empty_columns, template_file, filter_rows,
-                     output_file]
+
+        self.input_arg = [data_worksheet, structure_worksheet, header_row, drop_empty_columns, template_file,
+                          filter_rows, output_file]
 
         self.batch_df: pd.DataFrame = pd.DataFrame(columns=['data_worksheet', 'structure_worksheet', 'header_row',
                                                             'drop_empty_columns', 'template_file', 'output_file'])
         # Step 4.2. Since the default values for the input args are all 'None' or 0, if we remove these values from the
         #   list, if the list's length is greater than 0 then there is a chance that a single wash is required. We don't
         #   test for the input file path since this has already occurred.
-        if len(remove_from_iterable(input_arg, None, 0)) > 0:
+        if len(remove_from_iterable(self.input_arg, None, 0)) > 0:
 
             # If the drop_empty_rows is None set it to True. This will save the user problems.
             if drop_empty_columns is None:
@@ -399,6 +376,76 @@ class Laundry:
                                                     clean_header=True)
 
         # Step 6. Check the batch data.
+        self.check_batch_data()
+
+        # Step 6. Convert the batch DataFrame to a dict and store.
+        self._batch_dict = self.batch_df.to_dict('records')
+
+        # Step 7 - Every row of the the batch DataFrame contains information regarding an output file. For each row in
+        # the DataFrame produce the associated output file.
+        for t_batch_row in self.batch_df.itertuples():
+            self.t_structure_worksheet: tuple = t_batch_row.structure_worksheet
+            self.t_data_worksheet: tuple = t_batch_row.data_worksheet
+            self.t_structure_df = self.excel_to_dataframe(self._washing_basket, self.t_structure_worksheet,
+                                                          header_row=0, clean_header=True, drop_empty_rows=False)
+
+            self.t_structure_photo_path: Dict[str, Path] = {}
+            self.t_data_df = self.excel_to_dataframe(self._washing_basket, self.t_data_worksheet,
+                                                     header_row=t_batch_row.header_row, clean_header=True,
+                                                     drop_empty_rows=True)
+
+            # Filter the data DataFrame using the filters passed.
+            if str(t_batch_row.filter_rows).lower() not in invalid and t_batch_row.filter_rows is not None:
+                for row_filter in t_batch_row.filter_rows:
+                    self.t_data_df = self.t_data_df.loc[self.t_data_df[row_filter[0]].isin(row_filter[1])]
+
+            # Step 8 - Check the structure data.
+            self.check_structure_data()
+
+            # Step 9 - Check the data worksheet data.
+            self.check_data_data()
+
+            self.wash_load(t_batch_row.template_file, t_batch_row.output_file)
+
+            del self.t_structure_photo_path
+
+    def basic_data_check(self):
+        """
+        Basic data checking step.
+        """
+        print_verbose('Check: Worksheets are present:', verbose=self.output_verbose, **OUTPUT_TITLE)
+        if len(self.t_sheets_expected) == 0:
+            raise ValueError(f'Either the "data" and "structure" worksheets, or the "batch" worksheet must be '
+                             f'provided.')
+        for item, sht in enumerate(self.t_sheets_expected, 1):
+            print_verbose(f'  Sheet {item}:\t{sht}', verbose=self.output_verbose, **OUTPUT_TEXT)
+
+    def confirm_input_file_exists(self, input_fp):
+        """
+        Confirm the input file exists.
+        :return:
+        """
+        try:
+            print_verbose(f'Check: Resolving spreadsheet filepath: ', verbose=self.output_verbose, **OUTPUT_TITLE)
+            self._input_fp = resolve_file_path(input_fp)
+            print_verbose(f'  {self._input_fp}', verbose=self.output_verbose, **OUTPUT_TEXT)
+        except Exception as e:
+            print_verbose(f'\t{e}: File {input_fp} does not exist.', True, **EXCEPTION_TEXT)
+
+    def check_worksheet_names(self):
+        """
+        Check that the data, structure and batch worksheet names passed exist within the file.
+        """
+        try:
+            print_verbose(f'Check Worksheets exist in spreadsheet: ', verbose=self.output_verbose, **OUTPUT_TITLE)
+            self.compare_lists(self.t_sheets_expected, self._sheets_actual)
+            t_sht_actual = enumerate(self._sheets_actual, 1)
+            for item, sht in t_sht_actual:
+                print_verbose(f'  Sheet {item}:\t {sht}', verbose=self.output_verbose, **OUTPUT_TEXT)
+        except Exception as e:
+            print_verbose(f'{e}', True, **EXCEPTION_TEXT)
+
+    def check_batch_data(self):
         try:
             print_verbose(f'Batch worksheet data', verbose=self.output_verbose, **DATAFRAME_TITLE)
             print_verbose(f'{self.batch_df}', verbose=self.output_verbose, **DATAFRAME_TEXT)
@@ -409,40 +456,15 @@ class Laundry:
             print_verbose(f'{e}', True, **EXCEPTION_TEXT)
             exit_app()
 
-        # Step 6. Convert the batch DataFrame to a dict and store.
-        self._batch_dict = self.batch_df.to_dict('records')
+    def check_structure_data(self):
+        self.check_dataframe(f'Structure worksheet data', self.t_structure_df, f'Check: Structure worksheet data',
+                             self.check_structure_worksheet_data, f'Structure dataframe checked',
+                             f'{self.t_structure_worksheet}', f'Structure dataframe failure: ')
 
-        # Step 7 - Every row of the the batch DataFrame contains information regarding an output file. For each row in
-        # the DataFrame produce the associated output file.
-        for t_batch_row in self.batch_df.itertuples():
-            t_structure_worksheet = t_batch_row.structure_worksheet
-            t_data_worksheet = t_batch_row.data_worksheet
-            self.t_structure_df = self.excel_to_dataframe(self._washing_basket, t_structure_worksheet, header_row=0,
-                                                          clean_header=True, drop_empty_rows=False)
-
-            self.t_structure_photo_path: Dict[str, Path] = {}
-            self.t_data_df = self.excel_to_dataframe(self._washing_basket, t_data_worksheet,
-                                                     header_row=t_batch_row.header_row,
-                                                     clean_header=True, drop_empty_rows=True)
-
-            # Filter the data DataFrame using the filters passed.
-            if str(t_batch_row.filter_rows).lower() not in invalid and t_batch_row.filter_rows is not None:
-                for row_filter in t_batch_row.filter_rows:
-                    self.t_data_df = self.t_data_df.loc[self.t_data_df[row_filter[0]].isin(row_filter[1])]
-
-            # Step 8 - Check the structure data.
-            self.check_dataframe(f'Structure worksheet data', self.t_structure_df, f'Check: Structure worksheet data',
-                                 self.check_structure_worksheet_data, f'Structure dataframe checked',
-                                 f'{t_batch_row.structure_worksheet}', f'Structure dataframe failure: ')
-
-            # Step 9 - Check the data worksheet data.
-            self.check_dataframe(f'Data dataframe', self.t_data_df, f'Check: Data worksheet data',
-                                 self.check_data_worksheet_data, f'Data dataframe checked',
-                                 f'{t_batch_row.data_worksheet}', f'Data dataframe failure: ')
-
-            self.wash_load(t_batch_row.template_file, t_batch_row.output_file)
-
-            del self.t_structure_photo_path
+    def check_data_data(self):
+        self.check_dataframe(f'Data dataframe', self.t_data_df, f'Check: Data worksheet data',
+                             self.check_data_worksheet_data, f'Data dataframe checked',
+                             f'{self.t_data_worksheet}', f'Data dataframe failure: ')
 
     def generate_tempate_document(self):
         """
@@ -541,9 +563,7 @@ class Laundry:
             print_verbose(f'\tCheck drop empty columns', verbose=self.output_verbose, end='...', **OUTPUT_TEXT)
             if row.drop_empty_columns is None:
                 self.batch_df.at[row.Index, 'drop_empty_columns'] = False
-                print_verbose(f'Ok', verbose=self.output_verbose, **OUTPUT_TEXT)
-            else:
-                print_verbose(f'Ok', verbose=self.output_verbose, **OUTPUT_TEXT)
+            print_verbose(f'Ok', verbose=self.output_verbose, **OUTPUT_TEXT)
 
             # Check 7
             print_verbose(f'\tCheck header row details', verbose=self.output_verbose, end='...', **OUTPUT_TEXT)
@@ -583,7 +603,7 @@ class Laundry:
 
         for row in self.t_structure_df.itertuples():
             # Check 4
-            if 'photo' == str(row.section_type).lower():
+            if str(row.section_type).lower() == 'photo':
                 root = self._input_fp.parent
                 try:
                     print_verbose(f'  Row {row.Index}: Check file {row.path}', verbose=self.output_verbose,
@@ -628,26 +648,32 @@ class Laundry:
         columns = self.t_structure_photo_path.keys()
         print_verbose(f'  Photos are located in the following data worksheet columns:', verbose=self.output_verbose,
                       **OUTPUT_TEXT)
-        t_columns = enumerate(columns, 1)
-        for item, col in t_columns:
+        # todo: remove the line below
+        # t_columns = enumerate(columns, 1)
+        # todo: remove the line below
+        # for item, col in t_columns:
+        for item, col in enumerate(columns, 1):
             print_verbose(f'\t{item}\t{col}', verbose=self.output_verbose, **OUTPUT_TEXT)
 
-        # Grab the photos stored in the folders and store their paths in dictionary. Store them in the dictionary
-        # with their name minus the file extension as the key.
+        # Grab the photos stored in the folders and store their paths in a dictionary with their name minus the file
+        # extension as the key.
         for col in columns:
             for file_ext in photo_formats:
                 for file in self.t_structure_photo_path[col].glob('*' + file_ext):
                     t_photos_found[file.name] = file
             # For each of the columns containing photos loop through the self.t_data_df and replace the file name with
             # the path.
-            t_df_rows = self.t_data_df.itertuples()
-            for row in t_df_rows:
+            # todo: remove the line below
+            # t_df_rows = self.t_data_df.itertuples()
+            # todo: remove the line below
+            # for row in t_df_rows:
+            for row in self.t_data_df.itertuples():
                 # The row below must remain in this position
                 col = str(col).lower()
                 t_row = row._asdict()
                 t_row_photo = []
                 print_verbose(f'  Row {row.Index}:', verbose=self.output_verbose, **OUTPUT_TITLE)
-                if str(t_row[col]).lower() not in ['no photo', 'none', 'nan', '-']:
+                if str(t_row[col]).lower() not in not_a_photo:
                     for t in split_str(t_row[col]):
                         try:
                             t_row_photo.append(self.check_photo_paths(t, t_photos_found))
@@ -674,7 +700,7 @@ class Laundry:
         # Check 1
         photo = expected_photo.strip()
         if Path(photo).suffix is not '' and Path(photo).suffix not in photo_formats:
-            raise ValueError(f'The data worksheet photo {photo} is not been specified as a photo. Ensure that the'
+            raise ValueError(f'The data worksheet image {photo} does not have an image file extension. Ensure that the'
                              f' file format is one of the following formats {photo_formats}.')
         # Check 2
         elif Path(photo).suffix is '':
@@ -685,16 +711,16 @@ class Laundry:
                         return Path(actual_photos[t_photo_name]).resolve(strict=True)
                 except KeyError as k:
                     print_verbose(f'{k}', True, **EXCEPTION_TEXT)
-            raise ValueError(f'The photo {photo} does not exist in the specified directory.')
+            raise ValueError(f'The image {photo} does not exist in the specified directory.')
         # Check 3
         elif Path(photo).suffix in photo_formats:
             try:
                 if actual_photos[photo]:
                     return Path(actual_photos[photo]).resolve(strict=True)
             except KeyError as k:
-                print_verbose(f'{k}. The photo {photo} does not exist in the directory.', True, **EXCEPTION_TEXT)
+                print_verbose(f'{k}. The image {photo} does not exist in the directory.', True, **EXCEPTION_TEXT)
 
-        raise ValueError(f'The photo {photo} does not appear to exist in the directory.')
+        raise ValueError(f'The image {photo} does not appear to exist in the directory.')
 
     @staticmethod
     def excel_to_dataframe(io, worksheet: str, header_row: int = 0, clean_header: bool = False,
@@ -710,12 +736,12 @@ class Laundry:
         :return:
         """
         df = pd.read_excel(io, worksheet, header_row)
-        if clean_header is not False:
+        if clean_header:
             try:
                 df = df.clean_names()
             except KeyError as k:
                 print_verbose(f'{k}', True, **EXCEPTION_TEXT)
-        if drop_empty_rows is True:
+        if drop_empty_rows:
             try:
                 df = df.dropna(thresh=2)
             except KeyError as k:
@@ -761,17 +787,17 @@ class Laundry:
 
     @staticmethod
     def in_lists(expected_list, actual_list):
-        _ = []
-        for each in actual_list:
-            if each.lower() not in expected_list:
-                # raise ValueError(f'The provided headers:\n\t{actual_list}\ndo not match the required headers'
-                #                  f'\n\t{expected_list}.')
-                _.append(each)
-        if len(_) > 0:
-            _ = listify(_)
-            raise ValueError(f'The following header cannot be found:\n{_}')
-        else:
+        """
+        Check that contents of one list are in the expected list.
+        :param expected_list: List containing the expected values.
+        :param actual_list: List containing the values to be checked.
+        :return: True or raise a ValueError
+        """
+        _ = [each for each in actual_list if each.lower() not in expected_list]
+        if not _:
             return True
+        _ = listify(_)
+        raise ValueError(f'The following header cannot be found:\n{_}')
 
     def data_check(self, check_text: str, success_text: str, comparision_list: List[tuple], compare: str):
         """
